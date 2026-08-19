@@ -1,2 +1,2 @@
-# Jelajah-Corp---JomExplore
-A tourism app
+# JomExplore
+A tourism website
