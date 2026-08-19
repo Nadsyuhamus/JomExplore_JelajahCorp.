@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Nearby Places | JomExplore</title>
+
+    <link rel="stylesheet"
+          href="css/style.css">
+
+</head>
+
+
+<body>
+
+
+    <!-- NAVIGATION -->
+
+    <header class="navbar">
+
+        <div class="logo">
+            🌏 JomExplore
+        </div>
+
+        <a href="explore.html"
+           class="back-button">
+
+            ← Change Preferences
+
+        </a>
+
+    </header>
+
+
+
+    <!-- RESULTS -->
+
+    <main class="results-page">
+
+
+        <div class="results-header">
+
+            <p class="section-label">
+                JOMEXPLORE 🤖
+            </p>
+
+
+            <h1>
+                Places Near You
+            </h1>
+
+
+            <p id="resultDescription">
+
+                Finding places that match your preferences...
+
+            </p>
+
+        </div>
+
+
+
+        <!-- FILTERS -->
+
+        <div class="result-filters">
+
+            <button class="filter-button active"
+                    data-filter="all">
+
+                All
+
+            </button>
+
+
+            <button class="filter-button"
+                    data-filter="Food">
+
+                🍜 Food
+
+            </button>
+
+
+            <button class="filter-button"
+                    data-filter="Culture">
+
+                🏛️ Culture
+
+            </button>
+
+
+            <button class="filter-button"
+                    data-filter="Nature">
+
+                🌿 Nature
+
+            </button>
+
+
+            <button class="filter-button"
+                    data-filter="Shopping">
+
+                🛍️ Shopping
+
+            </button>
+
+
+            <button class="filter-button"
+                    data-filter="Entertainment">
+
+                🎢 Entertainment
+
+            </button>
+
+        </div>
+
+
+
+        <!-- PLACE RESULTS -->
+
+        <div id="resultsContainer"
+             class="results-grid">
+
+        </div>
+
+
+
+        <!-- NO RESULTS -->
+
+        <div id="noResults"
+             class="no-results"
+             style="display: none;">
+
+            <div>
+                🔍
+            </div>
+
+            <h2>
+                No matching places found
+            </h2>
+
+            <p>
+                Try changing your preferences
+                to discover more places.
+            </p>
+
+            <a href="explore.html"
+               class="primary-button">
+
+                Change Preferences
+
+            </a>
+
+        </div>
+
+
+    </main>
+
+
+
+    <script src="data/places.js"></script>
+
+    <script src="js/results.js"></script>
+
+
+</body>
+
+</html>
