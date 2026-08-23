@@ -13,6 +13,11 @@
     <link rel="stylesheet"
           href="css/style.css">
 
+    <link rel="stylesheet"
+          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin="">
+
 </head>
 
 
@@ -27,12 +32,14 @@
             🌏 JomExplore
         </div>
 
-        <a href="explore.html"
-           class="back-button">
-
-            ← Change Preferences
-
-        </a>
+        <div class="nav-actions">
+            <a href="favorites.html" class="back-button">
+                ♡ My Favourites <span id="favoriteCount">0</span>
+            </a>
+            <a href="explore.html" class="back-button">
+                ← Change Preferences
+            </a>
+        </div>
 
     </header>
 
@@ -61,62 +68,70 @@
 
             </p>
 
+            <p id="resultCount"
+               class="result-count"
+               aria-live="polite"></p>
+
+            <div class="location-controls">
+                <button id="useLocationButton"
+                        class="location-button"
+                        type="button">
+                    📍 Use my current location
+                </button>
+                <p id="locationStatus"
+                   class="location-status"
+                   aria-live="polite">
+                    Share your location to sort recommendations by nearest distance.
+                </p>
+                <p class="geo-attribution">
+                    Place coordinates ©
+                    <a href="https://www.openstreetmap.org/copyright"
+                       target="_blank"
+                       rel="noopener noreferrer">OpenStreetMap contributors</a>
+                </p>
+            </div>
+
         </div>
 
 
 
         <!-- FILTERS -->
 
-        <div class="result-filters">
+        <div id="resultFilters"
+             class="result-filters"
+             aria-label="Filter recommendations">
 
             <button class="filter-button active"
-                    data-filter="all">
+                    data-filter="recommended">
 
-                All
-
-            </button>
-
-
-            <button class="filter-button"
-                    data-filter="Food">
-
-                🍜 Food
+                Recommended
 
             </button>
 
 
-            <button class="filter-button"
-                    data-filter="Culture">
+            <button id="browseAllButton"
+                    class="browse-all-button"
+                    type="button">
 
-                🏛️ Culture
-
-            </button>
-
-
-            <button class="filter-button"
-                    data-filter="Nature">
-
-                🌿 Nature
-
-            </button>
-
-
-            <button class="filter-button"
-                    data-filter="Shopping">
-
-                🛍️ Shopping
-
-            </button>
-
-
-            <button class="filter-button"
-                    data-filter="Entertainment">
-
-                🎢 Entertainment
+                Explore all categories
 
             </button>
 
         </div>
+
+        <section class="map-panel"
+                 aria-labelledby="mapTitle">
+            <div class="map-header">
+                <div>
+                    <p class="section-label">MAP VIEW</p>
+                    <h2 id="mapTitle">Explore recommendations</h2>
+                </div>
+                <p id="mapCount" class="map-count"></p>
+            </div>
+            <div id="resultsMap"
+                 class="results-map"
+                 aria-label="Map of recommended places"></div>
+        </section>
 
 
 
@@ -144,8 +159,8 @@
             </h2>
 
             <p>
-                Try changing your preferences
-                to discover more places.
+                No place currently matches all of your selected interests,
+                budget, and available time. Try widening one preference.
             </p>
 
             <a href="explore.html"
@@ -163,6 +178,16 @@
 
 
     <script src="data/places.js"></script>
+
+    <script src="data/place-images.js"></script>
+
+    <script src="data/place-coordinates.js"></script>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+
+    <script src="js/favorites-store.js"></script>
 
     <script src="js/results.js"></script>
 
