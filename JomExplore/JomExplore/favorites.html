@@ -12,11 +12,14 @@
 </head>
 <body>
     <header class="navbar">
-        <div class="logo">🌏 JomExplore</div>
-        <div class="nav-actions">
-            <a href="results.html" class="back-button">← Back to Results</a>
-            <a href="explore.html" class="back-button">Change Preferences</a>
-        </div>
+        <a href="Index.html" class="logo logo-link">🌏 JomExplore</a>
+        <nav class="nav-actions" aria-label="Primary navigation">
+            <a href="Index.html" class="back-button">Home</a>
+            <a href="explore.html" class="back-button">Explore</a>
+            <a href="results.html" class="back-button">Results</a>
+            <a href="favorites.html" class="back-button" aria-current="page">Favourites</a>
+            <a href="saved-itineraries.html" class="back-button">Saved Itineraries</a>
+        </nav>
     </header>
 
     <main class="planner-page">
@@ -161,6 +164,26 @@
             <div id="unscheduledPlaces" class="unscheduled-places" hidden></div>
         </section>
     </main>
+
+    <dialog id="saveItineraryDialog" class="save-itinerary-dialog">
+        <form id="saveItineraryForm" method="dialog">
+            <div class="dialog-heading">
+                <div>
+                    <p class="section-label">SAVE YOUR PLAN</p>
+                    <h2 id="saveDialogTitle">Name this itinerary</h2>
+                </div>
+                <button id="closeSaveDialog" type="button" class="dialog-close" aria-label="Close save dialog">×</button>
+            </div>
+            <label for="itineraryName">Itinerary name</label>
+            <input id="itineraryName" name="itineraryName" type="text" maxlength="80" required
+                   placeholder="For example, KL cultural day">
+            <p>Your itinerary will be saved in this browser under Saved Itineraries.</p>
+            <div class="dialog-actions">
+                <button id="cancelSaveItinerary" type="button" class="secondary-button">Cancel</button>
+                <button id="confirmSaveItinerary" type="submit" class="primary-button">Save itinerary</button>
+            </div>
+        </form>
+    </dialog>
 
     <script src="data/places.js"></script>
     <script src="data/place-images.js"></script>
