@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saved Itineraries | JomExplore</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header class="navbar">
+        <a href="Index.html" class="logo logo-link">🌏 JomExplore</a>
+        <nav class="nav-actions" aria-label="Primary navigation">
+            <a href="Index.html" class="back-button">Home</a>
+            <a href="explore.html" class="back-button">Explore</a>
+            <a href="results.html" class="back-button">Results</a>
+            <a href="favorites.html" class="back-button">Favourites</a>
+            <a href="saved-itineraries.html" class="back-button" aria-current="page">Saved Itineraries</a>
+        </nav>
+    </header>
+
+    <main class="saved-page">
+        <header class="saved-hero">
+            <div>
+                <p class="section-label">SAVED PLANS</p>
+                <h1>Your journeys, ready when you are.</h1>
+                <p>Open a plan, continue editing it or make a copy for another day. Plans are stored privately in this browser.</p>
+            </div>
+            <a id="createItinerary" href="favorites.html" class="primary-button">Plan from favourites</a>
+        </header>
+
+        <section id="savedToolbar" class="saved-toolbar" aria-label="Search and sort saved itineraries">
+            <label class="saved-search" for="savedSearch">
+                <span aria-hidden="true">⌕</span>
+                <input id="savedSearch" type="search" placeholder="Search itinerary or place…" autocomplete="off">
+            </label>
+            <label class="saved-sort" for="savedSort">
+                <span>Sort by</span>
+                <select id="savedSort">
+                    <option value="recent">Recently saved</option>
+                    <option value="date">Travel date</option>
+                    <option value="name">Name A–Z</option>
+                </select>
+            </label>
+        </section>
+
+        <p id="savedResultCount" class="saved-result-count" aria-live="polite"></p>
+        <section id="savedItineraryGrid" class="saved-itinerary-grid" aria-label="Saved itineraries"></section>
+
+        <section id="savedEmpty" class="saved-empty" hidden>
+            <span aria-hidden="true">🗺️</span>
+            <h2>No saved itineraries yet</h2>
+            <p>Generate a plan from your favourite places and save it here for later.</p>
+            <a href="favorites.html" class="primary-button">Create an itinerary</a>
+        </section>
+
+        <section id="savedSearchEmpty" class="saved-empty" hidden>
+            <span aria-hidden="true">⌕</span>
+            <h2>No plans match your search</h2>
+            <p>Try another itinerary name or place.</p>
+            <button id="resetSavedSearch" type="button" class="secondary-button">Reset search</button>
+        </section>
+
+    </main>
+
+    <dialog id="savedPlanDialog" class="saved-plan-dialog">
+        <article>
+            <header class="saved-plan-dialog-heading">
+                <div>
+                    <p class="section-label">SAVED ITINERARY</p>
+                    <h2 id="savedPlanTitle"></h2>
+                    <p id="savedPlanMeta"></p>
+                </div>
+                <button id="closeSavedPlan" type="button" class="dialog-close" aria-label="Close itinerary">×</button>
+            </header>
+            <div id="savedPlanSummary" class="itinerary-summary"></div>
+            <div id="savedPlanExplanation" class="saved-plan-explanation" hidden></div>
+            <ol id="savedPlanTimeline" class="saved-plan-timeline"></ol>
+            <footer class="saved-plan-dialog-actions">
+                <button id="dialogCopyPlan" type="button" class="secondary-button">Copy summary</button>
+                <button id="dialogPrintPlan" type="button" class="secondary-button">Print</button>
+                <button id="dialogEditPlan" type="button" class="primary-button">Continue editing</button>
+            </footer>
+        </article>
+    </dialog>
+
+    <div id="savedToast" class="saved-toast" role="status" aria-live="polite" hidden></div>
+
+    <script src="js/favorites-store.js"></script>
+    <script src="js/saved-itineraries.js"></script>
+</body>
+</html>

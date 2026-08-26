@@ -18,6 +18,13 @@ const aiProviderStatus = document.getElementById("aiProviderStatus");
 const aiExplanationPanel = document.getElementById("aiExplanationPanel");
 const aiItineraryExplanation = document.getElementById("aiItineraryExplanation");
 const refreshAIExplanationButton = document.getElementById("refreshAIExplanation");
+const saveItineraryDialog = document.getElementById("saveItineraryDialog");
+const saveItineraryForm = document.getElementById("saveItineraryForm");
+const saveDialogTitle = document.getElementById("saveDialogTitle");
+const itineraryNameInput = document.getElementById("itineraryName");
+const confirmSaveItineraryButton = document.getElementById("confirmSaveItinerary");
+const closeSaveDialogButton = document.getElementById("closeSaveDialog");
+const cancelSaveItineraryButton = document.getElementById("cancelSaveItinerary");
 
 let generatedItinerary = null;
 let itineraryMap = null;
@@ -864,10 +871,51 @@ async function copyItinerarySummary() {
     }, 1800);
 }
 
-saveItineraryButton.addEventListener("click", () => {
+function getEditingItineraryRecord() {
+    const editingId = localStorage.getItem(EDITING_ITINERARY_STORAGE_KEY);
+    return getSavedItineraries().find(record => record.id === editingId) || null;
+}
+
+function openSaveItineraryDialog() {
     if (!generatedItinerary) return;
+    const editingRecord = getEditingItineraryRecord();
+    const date = generatedItinerary.settings?.date || "Kuala Lumpur day";
+    saveDialogTitle.textContent = editingRecord
+        ? "Update saved itinerary"
+        : "Name this itinerary";
+    confirmSaveItineraryButton.textContent = editingRecord
+        ? "Update itinerary"
+        : "Save itinerary";
+    itineraryNameInput.value = editingRecord?.name || `Kuala Lumpur · ${date}`;
+    saveItineraryDialog.showModal();
+    itineraryNameInput.focus();
+    itineraryNameInput.select();
+}
+
+saveItineraryButton.addEventListener("click", openSaveItineraryDialog);
+closeSaveDialogButton.addEventListener("click", () => saveItineraryDialog.close());
+cancelSaveItineraryButton.addEventListener("click", () => saveItineraryDialog.close());
+saveItineraryDialog.addEventListener("click", event => {
+    if (event.target === saveItineraryDialog) saveItineraryDialog.close();
+});
+saveItineraryForm.addEventListener("submit", event => {
+    event.preventDefault();
+    if (!generatedItinerary) return;
+    const editingRecord = getEditingItineraryRecord();
+    const record = saveItineraryRecord(
+        generatedItinerary,
+        itineraryNameInput.value,
+        editingRecord?.id
+    );
     localStorage.setItem(ITINERARY_STORAGE_KEY, JSON.stringify(generatedItinerary));
+    localStorage.setItem(EDITING_ITINERARY_STORAGE_KEY, record.id);
+    saveItineraryDialog.close();
     saveItineraryButton.textContent = "✓ Itinerary saved";
+    plannerMessage.textContent = `Saved as “${record.name}”. `;
+    const savedPlansLink = document.createElement("a");
+    savedPlansLink.href = "saved-itineraries.html";
+    savedPlansLink.textContent = "View Saved Itineraries";
+    plannerMessage.append(savedPlansLink, ".");
 });
 
 copyItineraryButton.addEventListener("click", copyItinerarySummary);
