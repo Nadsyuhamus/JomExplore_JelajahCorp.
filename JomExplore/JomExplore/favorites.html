@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Favourites & Itinerary | JomExplore</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet"
+          href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+          crossorigin="">
+</head>
+<body>
+    <header class="navbar">
+        <a href="Index.html" class="logo logo-link">🌏 JomExplore</a>
+        <nav class="nav-actions" aria-label="Primary navigation">
+            <a href="Index.html" class="back-button">Home</a>
+            <a href="explore.html" class="back-button">Explore</a>
+            <a href="results.html" class="back-button">Results</a>
+            <a href="favorites.html" class="back-button" aria-current="page">Favourites</a>
+            <a href="saved-itineraries.html" class="back-button">Saved Itineraries</a>
+        </nav>
+    </header>
+
+    <main class="planner-page">
+        <header class="planner-hero">
+            <p class="section-label">SMART DAY PLANNER</p>
+            <h1>Turn favourites into a day that flows.</h1>
+            <p>Choose your timing and transport. JomExplore will order your saved places to reduce backtracking and keep the plan realistic.</p>
+        </header>
+
+        <section class="planner-layout">
+            <div class="favorites-panel">
+                <div class="panel-heading">
+                    <div>
+                        <p class="section-label">YOUR SHORTLIST</p>
+                        <h2>My Favourites</h2>
+                    </div>
+                    <span id="plannerFavoriteCount">0 places</span>
+                </div>
+                <div id="favoritePlaces" class="favorite-places"></div>
+                <div id="favoriteEmpty" class="planner-empty" hidden>
+                    <span>♡</span>
+                    <h3>No favourites yet</h3>
+                    <p>Save a few places from the results page, then return here to build an itinerary.</p>
+                    <a href="results.html" class="primary-button">Browse places</a>
+                </div>
+            </div>
+
+            <form id="plannerForm" class="planner-form">
+                <p class="section-label">PLAN SETTINGS</p>
+                <h2>Shape your day</h2>
+
+                <label for="planDate">Date</label>
+                <input id="planDate" name="date" type="date" required>
+
+                <label for="startTime">Start time</label>
+                <input id="startTime" name="startTime" type="time" value="09:00" required>
+
+                <label for="availableHours">Available time</label>
+                <select id="availableHours" name="availableHours">
+                    <option value="3">3 hours</option>
+                    <option value="5">Half day · 5 hours</option>
+                    <option value="8" selected>Full day · 8 hours</option>
+                    <option value="10">Extended day · 10 hours</option>
+                </select>
+
+                <label for="plannerTransport">Primary transport</label>
+                <select id="plannerTransport" name="transport">
+                    <option value="auto" selected>✨ Auto recommend for each journey</option>
+                    <option value="transit">🚌 Public transport + walking</option>
+                    <option value="walking">🚶 Walking</option>
+                    <option value="driving">🚗 Driving</option>
+                    <option value="bicycling">🚲 Cycling</option>
+                </select>
+                <p class="field-help">Auto chooses from the transport methods you have available. You can change any journey after generating.</p>
+
+                <fieldset class="transport-availability">
+                    <legend>Transport available to you</legend>
+                    <label><input type="checkbox" name="availableTransport" value="walking" checked> 🚶 Walking</label>
+                    <label><input type="checkbox" name="availableTransport" value="transit" checked> 🚌 Public transport</label>
+                    <label><input type="checkbox" name="availableTransport" value="bicycling"> 🚲 Bicycle</label>
+                    <label><input type="checkbox" name="availableTransport" value="driving"> 🚗 Car</label>
+                </fieldset>
+
+                <label for="maximumBudget">Maximum total budget</label>
+                <select id="maximumBudget" name="maximumBudget">
+                    <option value="0">No limit</option>
+                    <option value="50">RM50</option>
+                    <option value="100">RM100</option>
+                    <option value="200">RM200</option>
+                    <option value="300">RM300</option>
+                </select>
+
+                <label class="planner-check">
+                    <input id="startFromLocation" type="checkbox">
+                    <span>Start from my current location</span>
+                </label>
+
+                <label class="planner-check">
+                    <input id="includeBreaks" name="includeBreaks" type="checkbox" checked>
+                    <span>Add meal and rest break suggestions</span>
+                </label>
+
+                <section class="planner-assistant" aria-labelledby="assistantTitle">
+                    <div class="assistant-heading">
+                        <span>✨</span>
+                        <div>
+                            <h3 id="assistantTitle">Smart planner assistant</h3>
+                            <p>Describe how you want the day to feel.</p>
+                        </div>
+                        <span id="aiProviderStatus" class="ai-provider-status">Checking local AI…</span>
+                    </div>
+                    <label for="assistantPrompt">Your request</label>
+                    <textarea id="assistantPrompt"
+                              rows="4"
+                              placeholder="Make it a relaxed half-day under RM100, starting in the morning. Prioritise food and culture, with less walking."></textarea>
+                    <div class="assistant-examples" aria-label="Example requests">
+                        <button type="button">Make it cheaper</button>
+                        <button type="button">Relaxed half-day</button>
+                        <button type="button">More nature, less walking</button>
+                    </div>
+                    <button id="applyAssistant"
+                            type="button"
+                            class="assistant-apply">Apply request</button>
+                    <div id="assistantInterpretation"
+                         class="assistant-interpretation"
+                         aria-live="polite"></div>
+                </section>
+
+                <p id="plannerMessage" class="planner-message" aria-live="polite"></p>
+                <button type="submit" class="primary-button planner-generate">✨ Generate itinerary</button>
+            </form>
+        </section>
+
+        <section id="itinerarySection" class="itinerary-section" hidden>
+            <div class="itinerary-heading">
+                <div>
+                    <p class="section-label">YOUR GENERATED PLAN</p>
+                    <h2 id="itineraryTitle">Kuala Lumpur itinerary</h2>
+                </div>
+                <div class="itinerary-actions">
+                    <button id="copyItinerary" type="button" class="secondary-button">Copy summary</button>
+                    <button id="printItinerary" type="button" class="secondary-button">Print</button>
+                    <button id="saveItinerary" type="button" class="secondary-button">Save itinerary</button>
+                </div>
+            </div>
+            <div id="itinerarySummary" class="itinerary-summary"></div>
+            <section id="aiExplanationPanel" class="ai-explanation-panel" hidden>
+                <div>
+                    <p class="section-label">AI PLAN EXPLANATION</p>
+                    <p id="aiItineraryExplanation" aria-live="polite"></p>
+                </div>
+                <button id="refreshAIExplanation" type="button">Refresh explanation</button>
+            </section>
+            <section class="itinerary-map-panel" aria-labelledby="itineraryMapTitle">
+                <div>
+                    <h3 id="itineraryMapTitle">Route overview</h3>
+                    <p>Numbered stops show the current itinerary order. Route lines are approximate.</p>
+                </div>
+                <div id="itineraryMap" class="itinerary-map" aria-label="Map of itinerary stops"></div>
+            </section>
+            <ol id="itineraryTimeline" class="itinerary-timeline"></ol>
+            <div id="unscheduledPlaces" class="unscheduled-places" hidden></div>
+        </section>
+    </main>
+
+    <dialog id="saveItineraryDialog" class="save-itinerary-dialog">
+        <form id="saveItineraryForm" method="dialog">
+            <div class="dialog-heading">
+                <div>
+                    <p class="section-label">SAVE YOUR PLAN</p>
+                    <h2 id="saveDialogTitle">Name this itinerary</h2>
+                </div>
+                <button id="closeSaveDialog" type="button" class="dialog-close" aria-label="Close save dialog">×</button>
+            </div>
+            <label for="itineraryName">Itinerary name</label>
+            <input id="itineraryName" name="itineraryName" type="text" maxlength="80" required
+                   placeholder="For example, KL cultural day">
+            <p>Your itinerary will be saved in this browser under Saved Itineraries.</p>
+            <div class="dialog-actions">
+                <button id="cancelSaveItinerary" type="button" class="secondary-button">Cancel</button>
+                <button id="confirmSaveItinerary" type="submit" class="primary-button">Save itinerary</button>
+            </div>
+        </form>
+    </dialog>
+
+    <script src="data/places.js"></script>
+    <script src="data/place-images.js"></script>
+    <script src="data/place-coordinates.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+            integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+            crossorigin=""></script>
+    <script src="js/favorites-store.js"></script>
+    <script src="js/favorites.js"></script>
+</body>
+</html>

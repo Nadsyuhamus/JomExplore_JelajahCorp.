@@ -1,0 +1,10 @@
+{
+    "name": "jomexplore-mvp",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "start": "node server.mjs",
+        "check": "node --check server.mjs && node --check js/favorites-store.js && node --check js/favorites.js && node --check js/results.js && node --check js/saved-itineraries.js"
+    }
+}
