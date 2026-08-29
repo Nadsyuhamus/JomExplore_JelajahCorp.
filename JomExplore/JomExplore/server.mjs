@@ -8,21 +8,13 @@ const port = Number(process.env.PORT || 3000);
 const ollamaUrl = process.env.OLLAMA_URL || "http://127.0.0.1:11434";
 const ollamaModel = process.env.JOMEXPLORE_OLLAMA_MODEL || "gemma3:4b";
 
-// Deployed hosts (Render, Railway, etc.) cannot reach a laptop's local Ollama
-// instance, so when a GROQ_API_KEY is present we use Groq's free hosted API
-// instead. Local development with `ollama pull` + `ollama serve` still works
-// unchanged when no key is set.
 const groqApiKey = process.env.GROQ_API_KEY || "";
 const groqModel = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
 const aiProvider = groqApiKey ? "groq" : "ollama";
 
-// Mini-survey storage. NOTE: on Render's free tier the filesystem is
-// ephemeral — it can be wiped when the instance restarts or spins down
-// after idling. Every response is also printed to the console (visible in
-// Render's Logs tab) as a backup, in case the file doesn't survive between
-// test sessions.
 const surveyDataDir = path.join(rootDirectory, "data");
 const surveyFilePath = path.join(surveyDataDir, "survey-responses.jsonl");
+const eventsFilePath = path.join(surveyDataDir, "events.jsonl");
 
 async function appendSurveyResponse(entry) {
     await fs.mkdir(surveyDataDir, { recursive: true });
@@ -32,6 +24,21 @@ async function appendSurveyResponse(entry) {
 async function readSurveyResponses() {
     try {
         const raw = await fs.readFile(surveyFilePath, "utf8");
+        return raw.split("\n").filter(Boolean).map(line => JSON.parse(line));
+    }
+    catch {
+        return [];
+    }
+}
+
+async function appendEvent(entry) {
+    await fs.mkdir(surveyDataDir, { recursive: true });
+    await fs.appendFile(eventsFilePath, `${JSON.stringify(entry)}\n`, "utf8");
+}
+
+async function readEvents() {
+    try {
+        const raw = await fs.readFile(eventsFilePath, "utf8");
         return raw.split("\n").filter(Boolean).map(line => JSON.parse(line));
     }
     catch {
@@ -295,6 +302,106 @@ async function handleSurveyResults(request, response) {
     sendJson(response, 200, { count: responses.length, responses });
 }
 
+const KNOWN_EVENTS = new Set(["start_exploring_click", "favourite_added", "itinerary_saved", "signup_completed"]);
+
+async function handleEventSubmit(request, response) {
+    const body = await readJson(request);
+    if (typeof body.event !== "string" || !body.event.trim()) {
+        sendJson(response, 400, { error: "'event' is required." });
+        return;
+    }
+
+    const { event, sessionId, ...rest } = body;
+    const entry = {
+        timestamp: new Date().toISOString(),
+        event: event.trim().slice(0, 80),
+        sessionId: typeof sessionId === "string" ? sessionId.slice(0, 100) : "unknown",
+        // Any extra fields the caller sent (e.g. placeId, placeCount) are
+        // kept as-is, capped to a handful of keys so one bad call can't
+        // bloat the log file.
+        meta: Object.fromEntries(Object.entries(rest).slice(0, 5))
+    };
+
+    console.log(`EVENT: ${JSON.stringify(entry)}`);
+
+    try {
+        await appendEvent(entry);
+    }
+    catch (error) {
+        console.error("Could not write event to disk:", error.message);
+    }
+
+    sendJson(response, 200, { ok: true });
+}
+
+async function handleEventResults(request, response) {
+    const events = await readEvents();
+    sendJson(response, 200, { count: events.length, events });
+}
+
+async function handleEventView(request, response) {
+    const events = (await readEvents()).slice().reverse();
+    const counts = {};
+    for (const entry of events) {
+        counts[entry.event] = (counts[entry.event] || 0) + 1;
+    }
+    const knownFirst = [...KNOWN_EVENTS, ...Object.keys(counts).filter(name => !KNOWN_EVENTS.has(name))];
+
+    const summaryCards = knownFirst
+        .filter(name => counts[name])
+        .map(name => `<div><strong>${counts[name]}</strong><span>${escapeHtml(name)}</span></div>`)
+        .join("");
+
+    const rows = events.map(entry => `
+        <tr>
+            <td>${escapeHtml(new Date(entry.timestamp).toLocaleString())}</td>
+            <td>${escapeHtml(entry.event)}</td>
+            <td>${escapeHtml(entry.sessionId).slice(0, 12)}…</td>
+            <td>${escapeHtml(JSON.stringify(entry.meta || {}))}</td>
+        </tr>`).join("");
+
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Event Log | JomExplore</title>
+<style>
+    body { font-family: Arial, sans-serif; background: #f6fbf9; color: #1f2937; margin: 0; padding: 32px 24px; }
+    h1 { margin: 0 0 4px; font-size: 22px; }
+    .summary { display: flex; gap: 16px; margin: 18px 0 26px; flex-wrap: wrap; }
+    .summary div { border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; padding: 14px 18px; min-width: 130px; }
+    .summary strong { display: block; font-size: 22px; color: #0f766e; }
+    .summary span { color: #64748b; font-size: 12px; }
+    table { width: 100%; border-collapse: collapse; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; }
+    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #e2e8f0; font-size: 13px; }
+    th { background: #ecfdf5; color: #0f766e; text-transform: uppercase; font-size: 11px; letter-spacing: 0.04em; }
+    .empty { color: #64748b; padding: 24px 0; }
+    .refresh-note { color: #64748b; font-size: 12px; margin-top: 20px; }
+    a.top-link { color: #0f766e; font-size: 13px; }
+</style>
+</head>
+<body>
+    <h1>JomExplore — Event Log</h1>
+    <p><a class="top-link" href="/survey">→ View itinerary-helpful survey results</a></p>
+    <div class="summary">
+        <div><strong>${events.length}</strong><span>Total events</span></div>
+        ${summaryCards}
+    </div>
+    ${events.length
+        ? `<table>
+            <thead><tr><th>Time</th><th>Event</th><th>Session</th><th>Details</th></tr></thead>
+            <tbody>${rows}</tbody>
+        </table>`
+        : `<p class="empty">No events yet.</p>`}
+    <p class="refresh-note">Reload this page to see new events as they come in.</p>
+</body>
+</html>`;
+
+    response.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+    response.end(html);
+}
+
 function escapeHtml(value) {
     return String(value)
         .replace(/&/g, "&amp;")
@@ -337,10 +444,12 @@ async function handleSurveyView(request, response) {
     td.no { color: #9a3412; font-weight: 700; }
     .empty { color: #64748b; padding: 24px 0; }
     .refresh-note { color: #64748b; font-size: 12px; margin-top: 20px; }
+    a.top-link { color: #0f766e; font-size: 13px; }
 </style>
 </head>
 <body>
     <h1>JomExplore — Itinerary Survey Results</h1>
+    <p><a class="top-link" href="/events">→ View click/engagement event log</a></p>
     <div class="summary">
         <div><strong>${responses.length}</strong><span>Total responses</span></div>
         <div><strong>${yesCount}</strong><span>👍 Helpful</span></div>
@@ -444,6 +553,18 @@ const server = http.createServer(async (request, response) => {
         }
         if (request.method === "GET" && pathname === "/survey") {
             await handleSurveyView(request, response);
+            return;
+        }
+        if (request.method === "POST" && pathname === "/api/event") {
+            await handleEventSubmit(request, response);
+            return;
+        }
+        if (request.method === "GET" && pathname === "/api/event") {
+            await handleEventResults(request, response);
+            return;
+        }
+        if (request.method === "GET" && pathname === "/events") {
+            await handleEventView(request, response);
             return;
         }
         if (request.method === "GET" || request.method === "HEAD") {

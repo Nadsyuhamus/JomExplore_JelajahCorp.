@@ -657,6 +657,7 @@ function displayPlaces(
                     ? "♥ Saved to favourites"
                     : "♡ Add to favourites";
                 updateFavoriteCount();
+                if (active) trackEvent("favourite_added", { placeId: place.id });
             });
 
             travelMode.addEventListener("change", () => {

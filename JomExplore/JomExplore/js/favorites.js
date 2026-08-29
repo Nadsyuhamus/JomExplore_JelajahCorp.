@@ -653,16 +653,6 @@ async function generateAIExplanation(itinerary) {
     }
 }
 
-function getOrCreateSessionId() {
-    const key = "jomExploreSurveySessionId";
-    let sessionId = localStorage.getItem(key);
-    if (!sessionId) {
-        sessionId = createStorageId();
-        localStorage.setItem(key, sessionId);
-    }
-    return sessionId;
-}
-
 function resetItinerarySurvey() {
     if (!itinerarySurvey) return;
     itinerarySurvey.hidden = false;
@@ -967,6 +957,7 @@ saveItineraryForm.addEventListener("submit", event => {
     );
     localStorage.setItem(ITINERARY_STORAGE_KEY, JSON.stringify(generatedItinerary));
     localStorage.setItem(EDITING_ITINERARY_STORAGE_KEY, record.id);
+    trackEvent("itinerary_saved", { placeCount: generatedItinerary.scheduled.length });
     saveItineraryDialog.close();
     saveItineraryButton.textContent = "✓ Itinerary saved";
     plannerMessage.textContent = `Saved as “${record.name}”. `;
