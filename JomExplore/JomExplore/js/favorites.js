@@ -25,6 +25,9 @@ const itineraryNameInput = document.getElementById("itineraryName");
 const confirmSaveItineraryButton = document.getElementById("confirmSaveItinerary");
 const closeSaveDialogButton = document.getElementById("closeSaveDialog");
 const cancelSaveItineraryButton = document.getElementById("cancelSaveItinerary");
+const itinerarySurvey = document.getElementById("itinerarySurvey");
+const surveyButtons = document.getElementById("surveyButtons");
+const surveyThanks = document.getElementById("surveyThanks");
 
 let generatedItinerary = null;
 let itineraryMap = null;
@@ -650,6 +653,60 @@ async function generateAIExplanation(itinerary) {
     }
 }
 
+function getOrCreateSessionId() {
+    const key = "jomExploreSurveySessionId";
+    let sessionId = localStorage.getItem(key);
+    if (!sessionId) {
+        sessionId = createStorageId();
+        localStorage.setItem(key, sessionId);
+    }
+    return sessionId;
+}
+
+function resetItinerarySurvey() {
+    if (!itinerarySurvey) return;
+    itinerarySurvey.hidden = false;
+    surveyThanks.hidden = true;
+    surveyButtons.hidden = false;
+    surveyButtons.querySelectorAll("button").forEach(button => {
+        button.classList.remove("survey-answer-selected");
+        button.disabled = false;
+    });
+}
+
+async function submitSurveyResponse(helpful, selectedButton) {
+    surveyButtons.querySelectorAll("button").forEach(button => {
+        button.disabled = true;
+        button.classList.toggle("survey-answer-selected", button === selectedButton);
+    });
+
+    try {
+        await fetch("/api/survey", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                helpful,
+                sessionId: getOrCreateSessionId(),
+                placeCount: generatedItinerary?.scheduled?.length ?? null
+            })
+        });
+    }
+    catch {
+        // Best-effort: even if the request fails, don't block the user —
+        // they've already given their answer visually.
+    }
+
+    surveyThanks.hidden = false;
+}
+
+if (surveyButtons) {
+    surveyButtons.addEventListener("click", event => {
+        const button = event.target.closest("button[data-survey-answer]");
+        if (!button) return;
+        submitSurveyResponse(button.dataset.surveyAnswer === "yes", button);
+    });
+}
+
 function renderItinerary(itinerary, scrollToPlan = true) {
     itinerary.settings.availableModes = itinerary.settings.availableModes || ["walking", "transit"];
     recalculateItineraryTiming(itinerary);
@@ -673,6 +730,7 @@ function renderItinerary(itinerary, scrollToPlan = true) {
         aiExplanationPanel.hidden = true;
     }
     renderItineraryMap(itinerary);
+    resetItinerarySurvey();
 
     itinerary.scheduled.forEach((item, index) => {
         const entry = document.createElement("li");

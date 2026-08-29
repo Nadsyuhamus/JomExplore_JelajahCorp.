@@ -2292,6 +2292,70 @@ footer p {
     margin-bottom: 34px;
 }
 
+.itinerary-survey {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 24px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #f6fbf9;
+    padding: 15px 16px;
+}
+
+.itinerary-survey[hidden] {
+    display: none;
+}
+
+.itinerary-survey #surveyQuestion {
+    margin: 0;
+    color: #1f2937;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.survey-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.survey-buttons button {
+    border: 1px solid #cbd5e1;
+    border-radius: 9px;
+    background: #fdfefe;
+    padding: 7px 14px;
+    color: #1f2937;
+    cursor: pointer;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.survey-buttons button:hover,
+.survey-buttons button:focus-visible {
+    border-color: #0f766e;
+    color: #0f766e;
+}
+
+.survey-buttons button.survey-answer-selected {
+    border-color: #0f766e;
+    background: #ecfdf5;
+    color: #0f766e;
+}
+
+.survey-thanks {
+    margin: 0;
+    color: #0f766e;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.survey-thanks[hidden] {
+    display: none;
+}
+
 .itinerary-map-panel > div:first-child {
     display: flex;
     align-items: baseline;
