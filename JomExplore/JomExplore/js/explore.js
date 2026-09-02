@@ -1,6 +1,21 @@
 const preferenceForm =
     document.getElementById("preferenceForm");
 
+try {
+    const savedPreferences = JSON.parse(localStorage.getItem("jomExplorePreferences"));
+    if (savedPreferences) {
+        document.querySelector(`input[name="location"][value="${CSS.escape(savedPreferences.location)}"]`)?.click();
+        document.querySelectorAll('input[name="interest"]').forEach(input => {
+            input.checked = savedPreferences.interests?.includes(input.value) ?? false;
+        });
+        document.querySelector(`input[name="budget"][value="${CSS.escape(savedPreferences.budget)}"]`)?.click();
+        document.querySelector(`input[name="time"][value="${CSS.escape(savedPreferences.time)}"]`)?.click();
+    }
+}
+catch {
+    // Ignore malformed saved preferences and show the default form.
+}
+
 
 preferenceForm.addEventListener("submit", function(event) {
 

@@ -317,11 +317,20 @@ function renderFavorites() {
 
 function setPlannerStep(step) {
     plannerStep = step;
+    if (step < 3) {
+        itinerarySection.hidden = true;
+    }
     plannerSteps.forEach((item, index) => {
         item.classList.toggle("is-active", index + 1 === step);
         item.classList.toggle("is-complete", index + 1 < step);
     });
     renderFavorites();
+    if (step === 1) {
+        document.querySelector(".favorites-panel")?.scrollIntoView({
+            behavior: "smooth",
+            block: "start"
+        });
+    }
     if (step === 2) {
         plannerForm.querySelector("#planDate")?.focus();
     }
