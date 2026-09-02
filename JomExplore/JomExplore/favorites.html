@@ -171,6 +171,15 @@
             </section>
             <ol id="itineraryTimeline" class="itinerary-timeline"></ol>
             <div id="unscheduledPlaces" class="unscheduled-places" hidden></div>
+
+            <section id="itinerarySurvey" class="itinerary-survey" hidden>
+                <p id="surveyQuestion">Was this itinerary helpful?</p>
+                <div id="surveyButtons" class="survey-buttons">
+                    <button type="button" class="secondary-button" data-survey-answer="yes">👍 Yes</button>
+                    <button type="button" class="secondary-button" data-survey-answer="no">👎 No</button>
+                </div>
+                <p id="surveyThanks" class="survey-thanks" hidden>Thanks for the feedback!</p>
+            </section>
         </section>
     </main>
 
@@ -201,6 +210,7 @@
             integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
             crossorigin=""></script>
     <script src="js/favorites-store.js"></script>
+    <script src="js/main.js"></script>
     <script src="js/favorites.js"></script>
 </body>
 </html>
