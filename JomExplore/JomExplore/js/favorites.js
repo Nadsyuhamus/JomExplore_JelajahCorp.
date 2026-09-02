@@ -25,10 +25,17 @@ const itineraryNameInput = document.getElementById("itineraryName");
 const confirmSaveItineraryButton = document.getElementById("confirmSaveItinerary");
 const closeSaveDialogButton = document.getElementById("closeSaveDialog");
 const cancelSaveItineraryButton = document.getElementById("cancelSaveItinerary");
+const continueToSettingsButton = document.getElementById("continueToSettings");
+const backToFavouritesButton = document.getElementById("backToFavourites");
+const plannerSteps = [...document.querySelectorAll(".planner-steps li")];
+const itinerarySurvey = document.getElementById("itinerarySurvey");
+const surveyButtons = document.getElementById("surveyButtons");
+const surveyThanks = document.getElementById("surveyThanks");
 
 let generatedItinerary = null;
 let itineraryMap = null;
 let itineraryMapLayer = null;
+let plannerStep = 1;
 let assistantState = {
     preferredCategories: [],
     pace: "standard"
@@ -283,7 +290,8 @@ function renderFavorites() {
     plannerFavoriteCount.textContent =
         `${savedPlaces.length} ${savedPlaces.length === 1 ? "place" : "places"}`;
     favoriteEmpty.hidden = savedPlaces.length > 0;
-    plannerForm.hidden = savedPlaces.length === 0;
+    plannerForm.hidden = savedPlaces.length === 0 || plannerStep !== 2;
+    continueToSettingsButton.hidden = savedPlaces.length === 0 || plannerStep !== 1;
 
     savedPlaces.forEach(place => {
         const image = placeImages[place.id];
@@ -306,6 +314,21 @@ function renderFavorites() {
         favoritePlaces.appendChild(item);
     });
 }
+
+function setPlannerStep(step) {
+    plannerStep = step;
+    plannerSteps.forEach((item, index) => {
+        item.classList.toggle("is-active", index + 1 === step);
+        item.classList.toggle("is-complete", index + 1 < step);
+    });
+    renderFavorites();
+    if (step === 2) {
+        plannerForm.querySelector("#planDate")?.focus();
+    }
+}
+
+continueToSettingsButton?.addEventListener("click", () => setPlannerStep(2));
+backToFavouritesButton?.addEventListener("click", () => setPlannerStep(1));
 
 function requestCurrentLocation() {
     return new Promise((resolve, reject) => {
@@ -650,6 +673,50 @@ async function generateAIExplanation(itinerary) {
     }
 }
 
+function resetItinerarySurvey() {
+    if (!itinerarySurvey) return;
+    itinerarySurvey.hidden = false;
+    surveyThanks.hidden = true;
+    surveyButtons.hidden = false;
+    surveyButtons.querySelectorAll("button").forEach(button => {
+        button.classList.remove("survey-answer-selected");
+        button.disabled = false;
+    });
+}
+
+async function submitSurveyResponse(helpful, selectedButton) {
+    surveyButtons.querySelectorAll("button").forEach(button => {
+        button.disabled = true;
+        button.classList.toggle("survey-answer-selected", button === selectedButton);
+    });
+
+    try {
+        await fetch("/api/survey", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                helpful,
+                sessionId: getOrCreateSessionId(),
+                placeCount: generatedItinerary?.scheduled?.length ?? null
+            })
+        });
+    }
+    catch {
+        // Best-effort: even if the request fails, don't block the user —
+        // they've already given their answer visually.
+    }
+
+    surveyThanks.hidden = false;
+}
+
+if (surveyButtons) {
+    surveyButtons.addEventListener("click", event => {
+        const button = event.target.closest("button[data-survey-answer]");
+        if (!button) return;
+        submitSurveyResponse(button.dataset.surveyAnswer === "yes", button);
+    });
+}
+
 function renderItinerary(itinerary, scrollToPlan = true) {
     itinerary.settings.availableModes = itinerary.settings.availableModes || ["walking", "transit"];
     recalculateItineraryTiming(itinerary);
@@ -673,6 +740,7 @@ function renderItinerary(itinerary, scrollToPlan = true) {
         aiExplanationPanel.hidden = true;
     }
     renderItineraryMap(itinerary);
+    resetItinerarySurvey();
 
     itinerary.scheduled.forEach((item, index) => {
         const entry = document.createElement("li");
@@ -812,6 +880,7 @@ plannerForm.addEventListener("submit", async event => {
     generatedItinerary = buildItinerary(savedPlaces, settings, startingPoint);
     saveItineraryButton.textContent = "Save itinerary";
     renderItinerary(generatedItinerary);
+    setPlannerStep(3);
     if (!plannerMessage.textContent.includes("could not")) {
         const exceedsAvailableTime =
             generatedItinerary.elapsed > settings.availableHours * 60;
@@ -909,6 +978,7 @@ saveItineraryForm.addEventListener("submit", event => {
     );
     localStorage.setItem(ITINERARY_STORAGE_KEY, JSON.stringify(generatedItinerary));
     localStorage.setItem(EDITING_ITINERARY_STORAGE_KEY, record.id);
+    trackEvent("itinerary_saved", { placeCount: generatedItinerary.scheduled.length });
     saveItineraryDialog.close();
     saveItineraryButton.textContent = "✓ Itinerary saved";
     plannerMessage.textContent = `Saved as “${record.name}”. `;
@@ -968,6 +1038,7 @@ try {
     );
     if (savedItinerary?.scheduled?.length && getSavedPlaces().length) {
         generatedItinerary = savedItinerary;
+        plannerStep = 3;
         renderItinerary(savedItinerary, false);
         saveItineraryButton.textContent = "✓ Itinerary saved";
     }
