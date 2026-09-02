@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Favourites & Itinerary | JomExplore</title>
     <link rel="stylesheet" href="css/style.css">
+    <script src="js/ui-icons.js" defer></script>
     <link rel="stylesheet"
           href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
           integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
@@ -29,6 +30,12 @@
             <p>Choose your timing and transport. JomExplore will order your saved places to reduce backtracking and keep the plan realistic.</p>
         </header>
 
+        <ol class="planner-steps" aria-label="Planner steps">
+            <li class="is-active"><span>1</span><strong>Review favourites</strong></li>
+            <li><span>2</span><strong>Set preferences</strong></li>
+            <li><span>3</span><strong>Generate plan</strong></li>
+        </ol>
+
         <section class="planner-layout">
             <div class="favorites-panel">
                 <div class="panel-heading">
@@ -45,9 +52,11 @@
                     <p>Save a few places from the results page, then return here to build an itinerary.</p>
                     <a href="results.html" class="primary-button">Browse places</a>
                 </div>
+                <button id="continueToSettings" type="button" class="primary-button planner-continue">Continue to plan</button>
             </div>
 
-            <form id="plannerForm" class="planner-form">
+            <form id="plannerForm" class="planner-form planner-settings-step" hidden>
+                <button id="backToFavourites" type="button" class="secondary-button planner-back">← Back to favourites</button>
                 <p class="section-label">PLAN SETTINGS</p>
                 <h2>Shape your day</h2>
 
@@ -67,11 +76,11 @@
 
                 <label for="plannerTransport">Primary transport</label>
                 <select id="plannerTransport" name="transport">
-                    <option value="auto" selected>✨ Auto recommend for each journey</option>
-                    <option value="transit">🚌 Public transport + walking</option>
-                    <option value="walking">🚶 Walking</option>
-                    <option value="driving">🚗 Driving</option>
-                    <option value="bicycling">🚲 Cycling</option>
+                    <option value="auto" selected>Auto recommend for each journey</option>
+                    <option value="transit">Public transport + walking</option>
+                    <option value="walking">Walking</option>
+                    <option value="driving">Driving</option>
+                    <option value="bicycling">Cycling</option>
                 </select>
                 <p class="field-help">Auto chooses from the transport methods you have available. You can change any journey after generating.</p>
 
