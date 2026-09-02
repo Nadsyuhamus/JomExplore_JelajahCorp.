@@ -571,7 +571,7 @@ function displayPlaces(
                             📍 ${place.area}
                         </span>
 
-                        <span class="place-rating">
+                        <span>
                             ⭐ ${place.rating}
                         </span>
 
@@ -604,17 +604,14 @@ function displayPlaces(
                     <div class="travel-controls">
                         <label for="travel-${place.id}">Travel by</label>
                         <div class="travel-action-row">
-                            <span class="travel-mode-field">
-                                <span class="travel-mode-icon" aria-hidden="true">🚌</span>
-                                <select id="travel-${place.id}"
-                                        class="travel-mode"
-                                        aria-label="Transportation method to ${place.name}">
-                                    <option value="transit">Public transport</option>
-                                    <option value="walking">Walking</option>
-                                    <option value="driving">Driving</option>
-                                    <option value="bicycling">Cycling</option>
-                                </select>
-                            </span>
+                            <select id="travel-${place.id}"
+                                    class="travel-mode"
+                                    aria-label="Transportation method to ${place.name}">
+                                <option value="transit">🚌 Public transport</option>
+                                <option value="walking">🚶 Walking</option>
+                                <option value="driving">🚗 Driving</option>
+                                <option value="bicycling">🚲 Cycling</option>
+                            </select>
                             <a class="directions-button"
                                href="${createDirectionsUrl(place, "transit")}"
                                target="_blank"
@@ -648,7 +645,6 @@ function displayPlaces(
             }
 
             const travelMode = card.querySelector(".travel-mode");
-            const travelModeIcon = card.querySelector(".travel-mode-icon");
             const directionsButton = card.querySelector(".directions-button");
             const favoriteButton = card.querySelector(".favorite-button");
 
@@ -664,13 +660,6 @@ function displayPlaces(
             });
 
             travelMode.addEventListener("change", () => {
-                const transportIcons = {
-                    transit: "🚌",
-                    walking: "🚶",
-                    driving: "🚗",
-                    bicycling: "🚲"
-                };
-                travelModeIcon.textContent = transportIcons[travelMode.value];
                 directionsButton.href = createDirectionsUrl(
                     place,
                     travelMode.value
