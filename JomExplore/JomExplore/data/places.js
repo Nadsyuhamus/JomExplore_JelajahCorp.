@@ -1020,4 +1020,58 @@ const places = [
         sourceUrl: "https://www.rexkl.com/"
     },
 
+    {
+        id: "EVT001",
+        name: "KL Food & Culture Weekend",
+        location: "Kuala Lumpur",
+        area: "Central Market",
+        category: "Events",
+        tags: ["Events", "Food", "Culture", "Entertainment"],
+        price: 15,
+        budgetLabel: "RM1–RM30",
+        rating: 4.5,
+        visitTime: 2,
+        description: "September demo listing featuring local food stalls, crafts and cultural performances. Verify dates before visiting.",
+        eventDate: "6–27 September 2026 · Sundays",
+        bestVisit: "10:00 AM–6:00 PM",
+        emoji: "🎪",
+        sourceUrl: "https://www.visitkualalumpur.com/"
+    },
+
+    {
+        id: "EVT002",
+        name: "KL Creative Night Market",
+        location: "Kuala Lumpur",
+        area: "Bukit Bintang",
+        category: "Events",
+        tags: ["Events", "Shopping", "Food", "Entertainment"],
+        price: 40,
+        budgetLabel: "RM31–RM50",
+        rating: 4.4,
+        visitTime: 2,
+        description: "September demo listing for an evening market with independent makers, snacks and live music. Verify dates before visiting.",
+        eventDate: "12–26 September 2026 · Saturdays",
+        bestVisit: "5:00 PM–11:00 PM",
+        emoji: "🎟️",
+        sourceUrl: "https://www.visitkualalumpur.com/"
+    },
+
+    {
+        id: "EVT003",
+        name: "KL Arts & Heritage Showcase",
+        location: "Kuala Lumpur",
+        area: "Dataran Merdeka",
+        category: "Events",
+        tags: ["Events", "Culture", "Activities"],
+        price: 75,
+        budgetLabel: "RM51–RM100",
+        rating: 4.6,
+        visitTime: 3,
+        description: "September demo listing with heritage exhibits, workshops and local performances. Verify dates before visiting.",
+        eventDate: "19–20 September 2026",
+        bestVisit: "11:00 AM–8:00 PM",
+        emoji: "🎨",
+        sourceUrl: "https://www.visitkualalumpur.com/"
+    },
+
 ];

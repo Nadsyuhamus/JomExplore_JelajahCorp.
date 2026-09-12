@@ -1,0 +1,85 @@
+// Demo accommodation catalogue for the MVP.
+// Production booking links should be replaced with the team's approved
+// affiliate deep links so completed bookings can be attributed to JomExplore.
+const hotels = [
+    {
+        id: "HOTEL-KL-001",
+        name: "The Kuala Lumpur Journal Hotel",
+        location: "Kuala Lumpur",
+        area: "Bukit Bintang",
+        nightlyRate: 220,
+        rating: 4.4,
+        distance: 1.2,
+        description: "A design-led stay close to food, shopping and the city centre.",
+        amenities: ["Wi-Fi", "Pool", "Breakfast"],
+        coordinates: { lat: 3.1478, lng: 101.7102 },
+        image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=82",
+        imageAlt: "Hotel pool and city accommodation",
+        sourceUrl: "https://www.kljournalhotel.com/",
+        bookingSearchName: "The Kuala Lumpur Journal Hotel"
+    },
+    {
+        id: "HOTEL-KL-002",
+        name: "WOLO Kuala Lumpur",
+        location: "Kuala Lumpur",
+        area: "Bukit Bintang",
+        nightlyRate: 165,
+        rating: 4.1,
+        distance: 1.4,
+        description: "A central, practical base for a spontaneous city break.",
+        amenities: ["Wi-Fi", "24-hour desk", "City centre"],
+        coordinates: { lat: 3.1471, lng: 101.7124 },
+        image: "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?auto=format&fit=crop&w=1200&q=82",
+        imageAlt: "Bright modern hotel room",
+        sourceUrl: "https://www.wolohotel.com/",
+        bookingSearchName: "WOLO Kuala Lumpur"
+    },
+    {
+        id: "HOTEL-KL-003",
+        name: "Travelodge Chinatown Kuala Lumpur",
+        location: "Kuala Lumpur",
+        area: "Chinatown",
+        nightlyRate: 145,
+        rating: 4.0,
+        distance: 0.8,
+        description: "An affordable base near heritage streets and local dining.",
+        amenities: ["Wi-Fi", "Family rooms", "Transit nearby"],
+        coordinates: { lat: 3.1422, lng: 101.6968 },
+        image: "https://images.unsplash.com/photo-1590490360182-c33d57733427?auto=format&fit=crop&w=1200&q=82",
+        imageAlt: "Cosy hotel bedroom",
+        sourceUrl: "https://www.travelodgehotels.asia/",
+        bookingSearchName: "Travelodge Chinatown Kuala Lumpur"
+    },
+    {
+        id: "HOTEL-KL-004",
+        name: "Verdant Hill Hotel Kuala Lumpur",
+        location: "Kuala Lumpur",
+        area: "Bukit Bintang",
+        nightlyRate: 195,
+        rating: 4.2,
+        distance: 1.6,
+        description: "A calm, comfortable option within easy reach of city attractions.",
+        amenities: ["Wi-Fi", "Pool", "Gym"],
+        coordinates: { lat: 3.1518, lng: 101.7093 },
+        image: "https://images.unsplash.com/photo-1564501049412-61c2a3083791?auto=format&fit=crop&w=1200&q=82",
+        imageAlt: "Hotel room with warm lighting",
+        sourceUrl: "https://www.verdant-hill.com/",
+        bookingSearchName: "Verdant Hill Hotel Kuala Lumpur"
+    },
+    {
+        id: "HOTEL-KL-005",
+        name: "Mingle Hostel Kuala Lumpur",
+        location: "Kuala Lumpur",
+        area: "Chinatown",
+        nightlyRate: 85,
+        rating: 4.3,
+        distance: 1.0,
+        description: "A social, budget-friendly stay for flexible city explorers.",
+        amenities: ["Wi-Fi", "Shared kitchen", "Lounge"],
+        coordinates: { lat: 3.1439, lng: 101.6983 },
+        image: "https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?auto=format&fit=crop&w=1200&q=82",
+        imageAlt: "Comfortable hostel bedroom",
+        sourceUrl: "https://www.minglehostel.com/",
+        bookingSearchName: "Mingle Hostel Kuala Lumpur"
+    }
+];

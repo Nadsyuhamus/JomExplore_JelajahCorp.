@@ -119,6 +119,85 @@
 
 
 
+            <!-- OPTIONAL ACCOMMODATION -->
+
+            <div class="preference-section accommodation-preference-section">
+
+                <div class="preference-heading-row">
+                    <div>
+                        <label for="includeAccommodation">
+                            🏨 Add a place to stay?
+                        </label>
+
+                        <p class="question-description">
+                            Optional — compare nearby hotels and book through a trusted partner.
+                        </p>
+                    </div>
+
+                    <label class="toggle-option" for="includeAccommodation">
+                        <input id="includeAccommodation"
+                               name="includeAccommodation"
+                               type="checkbox">
+                        <span>Include stays</span>
+                    </label>
+                </div>
+
+                <div id="accommodationFields"
+                     class="accommodation-fields"
+                     hidden>
+                    <div class="accommodation-field-grid">
+                        <label>
+                            Check-in
+                            <input id="checkIn"
+                                   name="checkIn"
+                                   type="date">
+                        </label>
+
+                        <label>
+                            Check-out
+                            <input id="checkOut"
+                                   name="checkOut"
+                                   type="date">
+                        </label>
+
+                        <label>
+                            Guests
+                            <select id="guests" name="guests">
+                                <option value="1">1 guest</option>
+                                <option value="2" selected>2 guests</option>
+                                <option value="3">3 guests</option>
+                                <option value="4">4 guests</option>
+                                <option value="5">5+ guests</option>
+                            </select>
+                        </label>
+
+                        <label>
+                            Nightly budget
+                            <select id="hotelBudget" name="hotelBudget">
+                                <option value="0">Any price</option>
+                                <option value="100">Up to RM100</option>
+                                <option value="150">Up to RM150</option>
+                                <option value="250">Up to RM250</option>
+                                <option value="400">Up to RM400</option>
+                            </select>
+                        </label>
+                    </div>
+
+                    <label>
+                        Preferred area
+                        <select id="hotelArea" name="hotelArea">
+                            <option value="Any area">Any area</option>
+                            <option value="Bukit Bintang">Bukit Bintang</option>
+                            <option value="Chinatown">Chinatown</option>
+                            <option value="KLCC">KLCC</option>
+                        </select>
+                    </label>
+                </div>
+
+            </div>
+
+
+
             <!-- INTERESTS -->
 
             <div class="preference-section">

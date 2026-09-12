@@ -6,6 +6,7 @@ const plannerMessage = document.getElementById("plannerMessage");
 const itinerarySection = document.getElementById("itinerarySection");
 const itineraryTitle = document.getElementById("itineraryTitle");
 const itinerarySummary = document.getElementById("itinerarySummary");
+const itineraryAccommodation = document.getElementById("itineraryAccommodation");
 const itineraryTimeline = document.getElementById("itineraryTimeline");
 const unscheduledPlaces = document.getElementById("unscheduledPlaces");
 const saveItineraryButton = document.getElementById("saveItinerary");
@@ -31,6 +32,10 @@ const plannerSteps = [...document.querySelectorAll(".planner-steps li")];
 const itinerarySurvey = document.getElementById("itinerarySurvey");
 const surveyButtons = document.getElementById("surveyButtons");
 const surveyThanks = document.getElementById("surveyThanks");
+const savedAccommodationPanel = document.getElementById("savedAccommodationPanel");
+const savedAccommodationDetails = document.getElementById("savedAccommodationDetails");
+const bookSavedAccommodation = document.getElementById("bookSavedAccommodation");
+const removeSavedAccommodationButton = document.getElementById("removeSavedAccommodation");
 
 let generatedItinerary = null;
 let itineraryMap = null;
@@ -236,6 +241,17 @@ function applyInterpretationToForm(interpretation, providerLabel) {
         : "I could not identify a supported preference. Try mentioning budget, duration, transport, pace, start time, or categories.";
 }
 
+function applyExplicitDurationOverride(interpretation, request) {
+    const text = request.toLowerCase();
+    if (text.includes("half day") || text.includes("half-day")) {
+        interpretation.updates = { ...interpretation.updates, availableHours: 5 };
+    }
+    else if (text.includes("full day") || text.includes("full-day")) {
+        interpretation.updates = { ...interpretation.updates, availableHours: 8 };
+    }
+    return interpretation;
+}
+
 async function applyAssistantRequest() {
     const request = assistantPrompt.value.trim();
     if (!request) {
@@ -249,14 +265,16 @@ async function applyAssistantRequest() {
 
     try {
         const result = await requestAIInterpretation(request);
+        applyExplicitDurationOverride(result.interpretation, request);
         applyInterpretationToForm(
             result.interpretation,
             `AI understood (${result.model})`
         );
     }
     catch {
+        const interpretation = applyExplicitDurationOverride(parsePlannerRequest(request), request);
         applyInterpretationToForm(
-            parsePlannerRequest(request),
+            interpretation,
             "Prototype fallback understood"
         );
     }
@@ -282,6 +300,116 @@ function getSavedPlaces() {
     return favoriteIds
         .map(id => places.find(place => place.id === id))
         .filter(Boolean);
+}
+
+function formatAccommodationDates(accommodation) {
+    if (!accommodation?.checkIn || !accommodation?.checkOut) {
+        return "Dates to be confirmed";
+    }
+
+    const formatDate = value => new Intl.DateTimeFormat("en-MY", {
+        day: "numeric",
+        month: "short"
+    }).format(new Date(`${value}T12:00:00`));
+    return `${formatDate(accommodation.checkIn)} – ${formatDate(accommodation.checkOut)}`;
+}
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
+
+function formatAccommodationDate(value) {
+    if (!value) return "To be confirmed";
+    const date = new Date(`${value}T12:00:00`);
+    if (Number.isNaN(date.getTime())) return String(value);
+    return new Intl.DateTimeFormat("en-MY", {
+        day: "numeric",
+        month: "short"
+    }).format(date);
+}
+
+function accommodationBookingState(accommodation) {
+    const confirmed = ["confirmed", "booked"].includes(
+        String(accommodation?.bookingStatus || "").toLowerCase()
+    );
+    return {
+        confirmed,
+        label: confirmed ? "Booking confirmed" : "Ready to book",
+        className: confirmed ? "is-confirmed" : "is-pending"
+    };
+}
+
+function accommodationDetailsMarkup(accommodation) {
+    const state = accommodationBookingState(accommodation);
+    const bookingUrl = escapeHtml(
+        accommodation.bookingUrl || accommodation.sourceUrl || "#"
+    );
+    const guests = escapeHtml(accommodation.guests || "2");
+    const area = escapeHtml(accommodation.area || "Kuala Lumpur");
+    const provider = escapeHtml(accommodation.bookingProvider || "Partner booking");
+    const rate = Number(accommodation.nightlyRate);
+    const nightlyRate = Number.isFinite(rate)
+        ? `RM${rate} / night`
+        : "Check partner price";
+    const confirmation = state.confirmed && accommodation.confirmationCode
+        ? escapeHtml(accommodation.confirmationCode)
+        : "Pending partner confirmation";
+    const total = state.confirmed && accommodation.totalAmount
+        ? `RM${escapeHtml(accommodation.totalAmount)}`
+        : "Calculated by partner";
+
+    return `
+        <div class="accommodation-card-main">
+            <div>
+                <span class="accommodation-eyebrow">ACCOMMODATION</span>
+                <strong>🏨 ${escapeHtml(accommodation.name)}</strong>
+                <span>${formatAccommodationDates(accommodation)} · ${area}</span>
+            </div>
+            <span class="accommodation-status ${state.className}">${state.label}</span>
+        </div>
+        <dl class="accommodation-detail-grid" aria-label="Accommodation details">
+            <div><dt>Check-in</dt><dd>${formatAccommodationDate(accommodation.checkIn)}</dd></div>
+            <div><dt>Check-out</dt><dd>${formatAccommodationDate(accommodation.checkOut)}</dd></div>
+            <div><dt>Guests</dt><dd>${guests}</dd></div>
+            <div><dt>Nightly rate</dt><dd>${nightlyRate}</dd></div>
+            <div><dt>Booking status</dt><dd>${state.confirmed ? "Confirmed" : "Pending"}</dd></div>
+            <div><dt>Confirmation</dt><dd>${confirmation}</dd></div>
+            <div><dt>Total</dt><dd>${total}</dd></div>
+            <div><dt>Provider</dt><dd>${provider}</dd></div>
+        </dl>
+        <div class="accommodation-actions">
+            <a class="hotel-book-button" href="${bookingUrl}" target="_blank" rel="noopener noreferrer">
+                ${state.confirmed ? "View booking ↗" : "Book via partner ↗"}
+            </a>
+        </div>`;
+}
+
+function renderSavedAccommodation() {
+    const accommodation = getSavedAccommodation();
+    if (!savedAccommodationPanel || !savedAccommodationDetails) return;
+
+    savedAccommodationPanel.hidden = !accommodation;
+    if (!accommodation) return;
+
+    const state = accommodationBookingState(accommodation);
+    savedAccommodationDetails.textContent =
+        `${accommodation.name} · ${formatAccommodationDates(accommodation)} · RM${accommodation.nightlyRate}/night · ${state.label}`;
+    bookSavedAccommodation.href = accommodation.bookingUrl || accommodation.sourceUrl || "#";
+    bookSavedAccommodation.textContent = state.confirmed
+        ? "View booking ↗"
+        : "Book via partner ↗";
+    bookSavedAccommodation.onclick = () => {
+        trackEvent("hotel_booking_click", {
+            hotelId: accommodation.id,
+            source: "favorites",
+            partner: "agoda_demo"
+        });
+    };
 }
 
 function renderFavorites() {
@@ -313,6 +441,8 @@ function renderFavorites() {
         });
         favoritePlaces.appendChild(item);
     });
+
+    renderSavedAccommodation();
 }
 
 function setPlannerStep(step) {
@@ -338,6 +468,14 @@ function setPlannerStep(step) {
 
 continueToSettingsButton?.addEventListener("click", () => setPlannerStep(2));
 backToFavouritesButton?.addEventListener("click", () => setPlannerStep(1));
+removeSavedAccommodationButton?.addEventListener("click", () => {
+    clearSavedAccommodation();
+    if (generatedItinerary) {
+        generatedItinerary.accommodation = null;
+        itineraryAccommodation.hidden = true;
+    }
+    renderSavedAccommodation();
+});
 
 function requestCurrentLocation() {
     return new Promise((resolve, reject) => {
@@ -739,6 +877,18 @@ function renderItinerary(itinerary, scrollToPlan = true) {
         <div><strong>${(itinerary.elapsed / 60).toFixed(1)}h</strong><span>planned</span></div>
         <div><strong>${totalDistance.toFixed(1)} km</strong><span>estimated travel</span></div>
         <div><strong>RM${totalCost}</strong><span>estimated spend</span></div>`;
+    const accommodation = itinerary.accommodation || getSavedAccommodation();
+    itineraryAccommodation.hidden = !accommodation;
+    if (accommodation) {
+        itineraryAccommodation.innerHTML = accommodationDetailsMarkup(accommodation);
+        itineraryAccommodation.querySelector(".hotel-book-button")?.addEventListener("click", () => {
+            trackEvent("hotel_booking_click", {
+                hotelId: accommodation.id,
+                source: "generated_itinerary",
+                partner: "agoda_demo"
+            });
+        });
+    }
     if (itinerary.aiExplanation) {
         aiExplanationPanel.hidden = false;
         aiItineraryExplanation.textContent = itinerary.aiExplanationModel
@@ -887,6 +1037,7 @@ plannerForm.addEventListener("submit", async event => {
     }
 
     generatedItinerary = buildItinerary(savedPlaces, settings, startingPoint);
+    generatedItinerary.accommodation = getSavedAccommodation();
     saveItineraryButton.textContent = "Save itinerary";
     renderItinerary(generatedItinerary);
     setPlannerStep(3);
@@ -910,6 +1061,19 @@ function createItineraryText(itinerary) {
         `Start: ${itinerary.settings.startTime}`,
         ""
     ];
+
+    if (itinerary.accommodation) {
+        const state = accommodationBookingState(itinerary.accommodation);
+        lines.push(
+            `Accommodation: ${itinerary.accommodation.name}`,
+            `   ${formatAccommodationDates(itinerary.accommodation)} · ${itinerary.accommodation.area}`,
+            `   Status: ${state.label}`,
+            ...(state.confirmed && itinerary.accommodation.confirmationCode
+                ? [`   Confirmation: ${itinerary.accommodation.confirmationCode}`]
+                : []),
+            ""
+        );
+    }
 
     itinerary.scheduled.forEach((item, index) => {
         lines.push(

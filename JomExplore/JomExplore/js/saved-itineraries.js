@@ -11,6 +11,7 @@ const savedPlanDialog = document.getElementById("savedPlanDialog");
 const savedPlanTitle = document.getElementById("savedPlanTitle");
 const savedPlanMeta = document.getElementById("savedPlanMeta");
 const savedPlanSummary = document.getElementById("savedPlanSummary");
+const savedPlanAccommodation = document.getElementById("savedPlanAccommodation");
 const savedPlanExplanation = document.getElementById("savedPlanExplanation");
 const savedPlanTimeline = document.getElementById("savedPlanTimeline");
 const closeSavedPlan = document.getElementById("closeSavedPlan");
@@ -57,6 +58,81 @@ function formatSavedAt(value) {
     }).format(date)}`;
 }
 
+function formatAccommodationDates(accommodation) {
+    if (!accommodation?.checkIn || !accommodation?.checkOut) return "Dates to be confirmed";
+    const formatDate = value => new Intl.DateTimeFormat("en-MY", {
+        day: "numeric",
+        month: "short"
+    }).format(new Date(`${value}T12:00:00`));
+    return `${formatDate(accommodation.checkIn)} – ${formatDate(accommodation.checkOut)}`;
+}
+
+function formatAccommodationDate(value) {
+    if (!value) return "To be confirmed";
+    const date = new Date(`${value}T12:00:00`);
+    if (Number.isNaN(date.getTime())) return String(value);
+    return new Intl.DateTimeFormat("en-MY", {
+        day: "numeric",
+        month: "short"
+    }).format(date);
+}
+
+function accommodationBookingState(accommodation) {
+    const confirmed = ["confirmed", "booked"].includes(
+        String(accommodation?.bookingStatus || "").toLowerCase()
+    );
+    return {
+        confirmed,
+        label: confirmed ? "Booking confirmed" : "Ready to book",
+        className: confirmed ? "is-confirmed" : "is-pending"
+    };
+}
+
+function accommodationDetailsMarkup(accommodation) {
+    const state = accommodationBookingState(accommodation);
+    const guests = escapeHtml(accommodation.guests || "2");
+    const area = escapeHtml(accommodation.area || "Kuala Lumpur");
+    const provider = escapeHtml(accommodation.bookingProvider || "Partner booking");
+    const rate = Number(accommodation.nightlyRate);
+    const nightlyRate = Number.isFinite(rate)
+        ? `RM${rate} / night`
+        : "Check partner price";
+    const confirmation = state.confirmed && accommodation.confirmationCode
+        ? escapeHtml(accommodation.confirmationCode)
+        : "Pending partner confirmation";
+    const total = state.confirmed && accommodation.totalAmount
+        ? `RM${escapeHtml(accommodation.totalAmount)}`
+        : "Calculated by partner";
+    const bookingUrl = escapeHtml(
+        accommodation.bookingUrl || accommodation.sourceUrl || "#"
+    );
+
+    return `
+        <div class="accommodation-card-main">
+            <div>
+                <span class="accommodation-eyebrow">ACCOMMODATION</span>
+                <strong>🏨 ${escapeHtml(accommodation.name)}</strong>
+                <span>${escapeHtml(formatAccommodationDates(accommodation))} · ${area}</span>
+            </div>
+            <span class="accommodation-status ${state.className}">${state.label}</span>
+        </div>
+        <dl class="accommodation-detail-grid" aria-label="Accommodation details">
+            <div><dt>Check-in</dt><dd>${escapeHtml(formatAccommodationDate(accommodation.checkIn))}</dd></div>
+            <div><dt>Check-out</dt><dd>${escapeHtml(formatAccommodationDate(accommodation.checkOut))}</dd></div>
+            <div><dt>Guests</dt><dd>${guests}</dd></div>
+            <div><dt>Nightly rate</dt><dd>${nightlyRate}</dd></div>
+            <div><dt>Booking status</dt><dd>${state.confirmed ? "Confirmed" : "Pending"}</dd></div>
+            <div><dt>Confirmation</dt><dd>${confirmation}</dd></div>
+            <div><dt>Total</dt><dd>${total}</dd></div>
+            <div><dt>Provider</dt><dd>${provider}</dd></div>
+        </dl>
+        <div class="accommodation-actions">
+            <a class="hotel-book-button" href="${bookingUrl}" target="_blank" rel="noopener noreferrer">
+                ${state.confirmed ? "View booking ↗" : "Book via partner ↗"}
+            </a>
+        </div>`;
+}
+
 function formatClock(totalMinutes) {
     const normalized = totalMinutes % (24 * 60);
     const hours = Math.floor(normalized / 60);
@@ -95,6 +171,18 @@ function createItineraryText(record) {
         `Start: ${itinerary.settings?.startTime || "Not set"}`,
         ""
     ];
+    if (itinerary.accommodation) {
+        const state = accommodationBookingState(itinerary.accommodation);
+        lines.push(
+            `Accommodation: ${itinerary.accommodation.name}`,
+            `   ${formatAccommodationDates(itinerary.accommodation)} · ${itinerary.accommodation.area || "Kuala Lumpur"}`,
+            `   Status: ${state.label}`,
+            ...(state.confirmed && itinerary.accommodation.confirmationCode
+                ? [`   Confirmation: ${itinerary.accommodation.confirmationCode}`]
+                : []),
+            ""
+        );
+    }
     (itinerary.scheduled || []).forEach((item, index) => {
         const transport = savedTransportSettings[item.transportMode] || {
             label: item.transportMode || "Transport",
@@ -142,6 +230,9 @@ function openRecordForEditing(record) {
         ITINERARY_STORAGE_KEY,
         JSON.stringify(record.itinerary)
     );
+    if (record.itinerary.accommodation) {
+        saveAccommodationRecord(record.itinerary.accommodation);
+    }
     localStorage.setItem(EDITING_ITINERARY_STORAGE_KEY, record.id);
     window.location.href = "favorites.html";
 }
@@ -173,6 +264,11 @@ function renderPlanDialog(record) {
         <div><strong>${stats.hours.toFixed(1)}h</strong><span>planned</span></div>
         <div><strong>${stats.distance.toFixed(1)} km</strong><span>estimated travel</span></div>
         <div><strong>RM${stats.cost}</strong><span>estimated spend</span></div>`;
+    const accommodation = itinerary.accommodation;
+    savedPlanAccommodation.hidden = !accommodation;
+    if (accommodation) {
+        savedPlanAccommodation.innerHTML = accommodationDetailsMarkup(accommodation);
+    }
     savedPlanExplanation.hidden = !itinerary.aiExplanation;
     savedPlanExplanation.textContent = itinerary.aiExplanation || "";
     savedPlanTimeline.innerHTML = "";
@@ -212,6 +308,10 @@ function itineraryCard(record) {
     const morePlaces = places.length > 3
         ? `<span class="more">+${places.length - 3} more</span>`
         : "";
+    const accommodation = itinerary.accommodation;
+    const accommodationPill = accommodation
+        ? `<span class="saved-accommodation-pill">🏨 ${escapeHtml(accommodation.name)}</span>`
+        : "";
 
     return `
         <article class="saved-itinerary-card" data-record-id="${escapeHtml(record.id)}">
@@ -231,7 +331,7 @@ function itineraryCard(record) {
                     </div>
                 </details>
             </header>
-            <div class="saved-place-pills">${placePills}${morePlaces}</div>
+            <div class="saved-place-pills">${accommodationPill}${placePills}${morePlaces}</div>
             <dl class="saved-card-stats">
                 <div><dt>Places</dt><dd>${stats.places}</dd></div>
                 <div><dt>Planned</dt><dd>${stats.hours.toFixed(1)}h</dd></div>

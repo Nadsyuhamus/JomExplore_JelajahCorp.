@@ -93,6 +93,27 @@
 
 
 
+        <div class="results-view-tabs" role="tablist" aria-label="Recommendation type">
+            <button id="placesViewButton"
+                    class="results-view-tab active"
+                    type="button"
+                    role="tab"
+                    aria-selected="true"
+                    data-results-view="places">
+                🗺️ Places & events
+            </button>
+            <button id="hotelsViewButton"
+                    class="results-view-tab"
+                    type="button"
+                    role="tab"
+                    aria-selected="false"
+                    data-results-view="hotels">
+                🏨 Hotels
+            </button>
+        </div>
+
+
+
         <!-- FILTERS -->
 
         <div id="resultFilters"
@@ -176,6 +197,8 @@
 
 
     <script src="data/places.js"></script>
+
+    <script src="data/hotels.js"></script>
 
     <script src="data/place-images.js"></script>
 

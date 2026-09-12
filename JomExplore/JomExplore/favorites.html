@@ -60,6 +60,23 @@
                 <p class="section-label">PLAN SETTINGS</p>
                 <h2>Shape your day</h2>
 
+                <section id="savedAccommodationPanel"
+                         class="saved-accommodation-card"
+                         aria-labelledby="savedAccommodationTitle"
+                         hidden>
+                    <div>
+                        <strong id="savedAccommodationTitle">🏨 Accommodation saved</strong>
+                        <span id="savedAccommodationDetails"></span>
+                    </div>
+                    <a id="bookSavedAccommodation"
+                       class="hotel-book-button"
+                       href="#"
+                       target="_blank"
+                       rel="noopener noreferrer">Book via partner ↗</a>
+                    <button id="removeSavedAccommodation"
+                            type="button">Remove</button>
+                </section>
+
                 <label for="planDate">Date</label>
                 <input id="planDate" name="date" type="date" required>
 
@@ -155,6 +172,7 @@
                 </div>
             </div>
             <div id="itinerarySummary" class="itinerary-summary"></div>
+            <div id="itineraryAccommodation" class="saved-accommodation-card itinerary-accommodation" hidden></div>
             <section id="aiExplanationPanel" class="ai-explanation-panel" hidden>
                 <div>
                     <p class="section-label">AI PLAN EXPLANATION</p>

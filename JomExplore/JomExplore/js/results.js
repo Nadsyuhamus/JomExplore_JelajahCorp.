@@ -50,12 +50,20 @@ const useLocationButton = document.getElementById("useLocationButton");
 const locationStatus = document.getElementById("locationStatus");
 const mapCount = document.getElementById("mapCount");
 const favoriteCount = document.getElementById("favoriteCount");
+const resultsViewTabs = document.querySelectorAll(".results-view-tab");
+const placesViewButton = document.getElementById("placesViewButton");
+const hotelsViewButton = document.getElementById("hotelsViewButton");
 
 let userLocation = null;
 let resultsMap;
 let placeMarkerLayer;
 let userLocationMarker;
 const markersByPlaceId = new Map();
+let resultsView = "places";
+const HOTEL_PARTNER_CONFIG = {
+    baseUrl: "https://www.agoda.com/search",
+    affiliateId: ""
+};
 
 
 // =================================
@@ -180,6 +188,28 @@ function updatePlaceDistances() {
     });
 }
 
+function getResultCoordinates(item) {
+    return item.coordinates || placeCoordinates[item.id];
+}
+
+function getResultArea(item) {
+    return item.area || item.location || preferences.location;
+}
+
+function getResultDistance(item) {
+    if (userLocation && getResultCoordinates(item)) {
+        const coordinates = getResultCoordinates(item);
+        return calculateDistance(
+            userLocation.lat,
+            userLocation.lng,
+            coordinates.lat,
+            coordinates.lng
+        );
+    }
+
+    return Number(item.distance || 0);
+}
+
 function createDirectionsUrl(place, travelMode) {
     const coordinates = placeCoordinates[place.id];
     const parameters = new URLSearchParams({
@@ -229,9 +259,10 @@ function createMarkerPopup(place) {
     const details = document.createElement("p");
 
     title.textContent = place.name;
-    details.textContent = userLocation
-        ? `${place.area} · ${place.distance.toFixed(1)} km away`
-        : place.area;
+    const distance = getResultDistance(place);
+    details.textContent = distance
+        ? `${getResultArea(place)} · ${distance.toFixed(1)} km away`
+        : getResultArea(place);
     popup.append(title, details);
 
     return popup;
@@ -242,13 +273,15 @@ function updateResultsMap(placesToDisplay) {
 
     placeMarkerLayer.clearLayers();
     markersByPlaceId.clear();
+    const mapItemLabel = resultsView === "hotels" ? "stay" : "place";
     mapCount.textContent =
-        `${placesToDisplay.length} ${placesToDisplay.length === 1 ? "place" : "places"} on map`;
+        `${placesToDisplay.length} ${placesToDisplay.length === 1 ? mapItemLabel : `${mapItemLabel}s`} on map`;
 
     const bounds = [];
 
     placesToDisplay.forEach(place => {
-        const coordinates = placeCoordinates[place.id];
+        const coordinates = getResultCoordinates(place);
+        if (!coordinates) return;
         const marker = L.marker([coordinates.lat, coordinates.lng])
             .bindPopup(createMarkerPopup(place))
             .addTo(placeMarkerLayer);
@@ -286,7 +319,8 @@ function updateResultsMap(placesToDisplay) {
 function focusPlaceOnMap(place) {
     if (!resultsMap) return;
 
-    const coordinates = placeCoordinates[place.id];
+    const coordinates = getResultCoordinates(place);
+    if (!coordinates) return;
     const marker = markersByPlaceId.get(place.id);
 
     resultsMap.flyTo([coordinates.lat, coordinates.lng], 16, {
@@ -457,6 +491,178 @@ function checkTime(
 }
 
 // =================================
+// HOTEL RESULTS
+// =================================
+
+function getAccommodationPreferences() {
+    return preferences.accommodation?.enabled
+        ? preferences.accommodation
+        : { enabled: false, hotelBudget: "0", hotelArea: "Any area" };
+}
+
+function getSavedAccommodation() {
+    try {
+        return JSON.parse(localStorage.getItem("jomExploreAccommodation"));
+    }
+    catch {
+        return null;
+    }
+}
+
+function saveAccommodation(hotel) {
+    const accommodation = getAccommodationPreferences();
+    const savedHotel = {
+        ...hotel,
+        checkIn: accommodation.checkIn || "",
+        checkOut: accommodation.checkOut || "",
+        guests: accommodation.guests || "2",
+        bookingStatus: "saved",
+        savedAt: new Date().toISOString(),
+        bookingUrl: createHotelBookingUrl(hotel, "saved_accommodation")
+    };
+    localStorage.setItem("jomExploreAccommodation", JSON.stringify(savedHotel));
+    window.dispatchEvent(new CustomEvent("accommodationchange", {
+        detail: savedHotel
+    }));
+    return savedHotel;
+}
+
+function createHotelBookingUrl(hotel, source = "results") {
+    // Replace this demo partner URL and add the approved affiliate parameter
+    // once a booking partner agreement is in place. The subid keeps the
+    // JomExplore surface attributable in the partner dashboard.
+    const parameters = new URLSearchParams({
+        text: hotel.bookingSearchName || hotel.name,
+        utm_source: "JomExplore",
+        utm_medium: "affiliate",
+        utm_campaign: "hotel_booking",
+        subid: `hotel_${hotel.id}_${source}`
+    });
+    if (HOTEL_PARTNER_CONFIG.affiliateId) {
+        parameters.set("affiliate_id", HOTEL_PARTNER_CONFIG.affiliateId);
+    }
+    const accommodation = getAccommodationPreferences();
+    if (accommodation.checkIn) parameters.set("checkIn", accommodation.checkIn);
+    if (accommodation.checkOut) parameters.set("checkOut", accommodation.checkOut);
+    if (accommodation.guests) parameters.set("guests", accommodation.guests);
+    return `${HOTEL_PARTNER_CONFIG.baseUrl}?${parameters.toString()}`;
+}
+
+function hotelDatesLabel() {
+    const accommodation = getAccommodationPreferences();
+    if (!accommodation.checkIn || !accommodation.checkOut) {
+        return "Select dates in Explore";
+    }
+
+    const formatDate = value => new Intl.DateTimeFormat("en-MY", {
+        day: "numeric",
+        month: "short"
+    }).format(new Date(`${value}T12:00:00`));
+    return `${formatDate(accommodation.checkIn)} – ${formatDate(accommodation.checkOut)}`;
+}
+
+function findMatchingHotels() {
+    const accommodation = getAccommodationPreferences();
+    const maximumRate = Number(accommodation.hotelBudget || 0);
+    const requestedArea = accommodation.hotelArea || "Any area";
+
+    return hotels
+        .filter(hotel => hotel.location === preferences.location)
+        .filter(hotel => !maximumRate || hotel.nightlyRate <= maximumRate)
+        .filter(hotel => requestedArea === "Any area" || hotel.area === requestedArea)
+        .sort((a, b) => {
+            const distanceA = getResultDistance(a);
+            const distanceB = getResultDistance(b);
+            return distanceA - distanceB || b.rating - a.rating;
+        });
+}
+
+function displayHotels(hotelsToDisplay) {
+    resultsContainer.innerHTML = "";
+    updateResultsMap(hotelsToDisplay);
+    resultCount.textContent = `${hotelsToDisplay.length} ${hotelsToDisplay.length === 1 ? "stay" : "stays"}`;
+    noResults.style.display = "none";
+
+    if (!hotelsToDisplay.length) {
+        resultsContainer.innerHTML = `
+            <div class="hotel-empty">
+                <strong>No stays match these preferences yet.</strong>
+                <p>Try a wider nightly budget or choose any area in Explore.</p>
+                <a href="explore.html" class="primary-button">Adjust stay preferences</a>
+            </div>`;
+        return;
+    }
+
+    hotelsToDisplay.forEach(hotel => {
+        const savedHotel = getSavedAccommodation();
+        const isSaved = savedHotel?.id === hotel.id;
+        const distance = getResultDistance(hotel);
+        const card = document.createElement("article");
+        card.className = "hotel-card";
+        card.innerHTML = `
+            <div class="hotel-image">
+                <img src="${hotel.image}" alt="${hotel.imageAlt}" loading="lazy" decoding="async">
+            </div>
+            <div class="hotel-content">
+                <div class="hotel-kicker">
+                    <span>🏨 ${hotel.area}</span>
+                    <span>⭐ ${hotel.rating}</span>
+                </div>
+                <h3>${hotel.name}</h3>
+                <p>${hotel.description}</p>
+                <div class="hotel-meta">
+                    <span>📍 ${distance.toFixed(1)} km from centre</span>
+                    <span>🗓️ ${hotelDatesLabel()}</span>
+                </div>
+                <div class="hotel-amenities">
+                    ${hotel.amenities.map(amenity => `<span>${amenity}</span>`).join("")}
+                </div>
+                <div class="hotel-price-row">
+                    <div class="hotel-price">
+                        <strong>RM${hotel.nightlyRate}</strong>
+                        <span>per night · check partner price</span>
+                    </div>
+                </div>
+                <div class="hotel-actions">
+                    <button class="hotel-save-button${isSaved ? " active" : ""}"
+                            type="button"
+                            aria-pressed="${isSaved}">
+                        ${isSaved ? "✓ Saved to itinerary" : "＋ Save to itinerary"}
+                    </button>
+                    <a class="hotel-book-button"
+                       href="${createHotelBookingUrl(hotel)}"
+                       target="_blank"
+                       rel="noopener noreferrer">
+                        Check availability ↗
+                    </a>
+                    <p class="hotel-booking-note">Booking opens with our partner. JomExplore may earn a commission.</p>
+                </div>
+            </div>`;
+
+        card.querySelector(".hotel-save-button").addEventListener("click", () => {
+            saveAccommodation(hotel);
+            displayHotels(hotelsToDisplay);
+            trackEvent("accommodation_saved", { hotelId: hotel.id });
+        });
+        card.querySelector(".hotel-book-button").addEventListener("click", () => {
+            if (getSavedAccommodation()?.id !== hotel.id) {
+                saveAccommodation(hotel);
+            }
+            trackEvent("hotel_booking_click", {
+                hotelId: hotel.id,
+                source: "results",
+                partner: "agoda_demo"
+            });
+        });
+        card.querySelector(".hotel-image img").addEventListener("error", event => {
+            event.currentTarget.hidden = true;
+            event.currentTarget.parentElement.textContent = "🏨";
+        });
+        resultsContainer.appendChild(card);
+    });
+}
+
+// =================================
 // DISPLAY PLACES
 // =================================
 
@@ -562,6 +768,8 @@ function displayPlaces(
                         ${place.description}
 
                     </p>
+
+                    ${place.eventDate ? `<p class="event-date"><strong>Event dates:</strong> ${place.eventDate}</p>` : ""}
 
                     <div class="place-info">
 
@@ -729,6 +937,7 @@ const categoryIcons = {
     Nature: "🌿",
     Shopping: "🛍️",
     Entertainment: "🎢",
+    Events: "🎪",
     Adventure: "🎯",
     Activities: "🎯"
 };
@@ -824,6 +1033,33 @@ browseAllButton.addEventListener("click", () => {
     );
 });
 
+function setResultsView(view) {
+    resultsView = view;
+    resultsViewTabs.forEach(button => {
+        const isActive = button.dataset.resultsView === view;
+        button.classList.toggle("active", isActive);
+        button.setAttribute("aria-selected", String(isActive));
+    });
+
+    if (view === "hotels") {
+        resultFilters.hidden = true;
+        resultDescription.textContent =
+            `Stays near ${preferences.location} that fit your accommodation preferences.`;
+        document.getElementById("mapTitle").textContent = "Hotels on the map";
+        displayHotels(findMatchingHotels());
+        return;
+    }
+
+    resultFilters.hidden = false;
+    document.getElementById("mapTitle").textContent = "Explore recommendations";
+    renderFilters();
+    displayPlaces(matchingPlaces);
+}
+
+resultsViewTabs.forEach(button => {
+    button.addEventListener("click", () => setResultsView(button.dataset.resultsView));
+});
+
 useLocationButton.addEventListener("click", () => {
     if (!navigator.geolocation) {
         locationStatus.textContent =
@@ -846,8 +1082,13 @@ useLocationButton.addEventListener("click", () => {
             matchingPlaces = findMatchingPlaces();
             sortByCurrentDistance(locationPlaces);
             browsingAllCategories = false;
-            renderFilters();
-            displayPlaces(matchingPlaces);
+            if (resultsView === "hotels") {
+                displayHotels(findMatchingHotels());
+            }
+            else {
+                renderFilters();
+                displayPlaces(matchingPlaces);
+            }
 
             useLocationButton.disabled = false;
             useLocationButton.textContent = "✓ Using current location";
@@ -874,4 +1115,4 @@ useLocationButton.addEventListener("click", () => {
     );
 });
 
-renderFilters();
+setResultsView("places");

@@ -3,6 +3,7 @@ const ITINERARY_STORAGE_KEY = "jomExploreSavedItinerary";
 const SAVED_ITINERARIES_STORAGE_KEY = "jomExploreSavedItineraries";
 const EDITING_ITINERARY_STORAGE_KEY = "jomExploreEditingItineraryId";
 const ITINERARY_MIGRATION_STORAGE_KEY = "jomExploreItineraryMigrationV1";
+const ACCOMMODATION_STORAGE_KEY = "jomExploreAccommodation";
 
 function getFavoriteIds() {
     try {
@@ -33,6 +34,29 @@ function toggleFavorite(placeId) {
     }));
 
     return nextFavorites;
+}
+
+function getSavedAccommodation() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(ACCOMMODATION_STORAGE_KEY));
+        return saved && typeof saved === "object" ? saved : null;
+    }
+    catch {
+        return null;
+    }
+}
+
+function saveAccommodationRecord(accommodation) {
+    localStorage.setItem(ACCOMMODATION_STORAGE_KEY, JSON.stringify(accommodation));
+    window.dispatchEvent(new CustomEvent("accommodationchange", {
+        detail: accommodation
+    }));
+    return accommodation;
+}
+
+function clearSavedAccommodation() {
+    localStorage.removeItem(ACCOMMODATION_STORAGE_KEY);
+    window.dispatchEvent(new CustomEvent("accommodationchange", { detail: null }));
 }
 
 function createStorageId() {
