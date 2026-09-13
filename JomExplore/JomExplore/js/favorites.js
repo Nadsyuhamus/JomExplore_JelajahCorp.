@@ -33,7 +33,10 @@ const itinerarySurvey = document.getElementById("itinerarySurvey");
 const surveyButtons = document.getElementById("surveyButtons");
 const surveyThanks = document.getElementById("surveyThanks");
 const savedAccommodationPanel = document.getElementById("savedAccommodationPanel");
+const savedAccommodationTitle = document.getElementById("savedAccommodationTitle");
 const savedAccommodationDetails = document.getElementById("savedAccommodationDetails");
+const includeSavedAccommodation = document.getElementById("includeSavedAccommodation");
+const includeSavedAccommodationOption = includeSavedAccommodation?.closest("label");
 const bookSavedAccommodation = document.getElementById("bookSavedAccommodation");
 const removeSavedAccommodationButton = document.getElementById("removeSavedAccommodation");
 
@@ -346,22 +349,24 @@ function accommodationBookingState(accommodation) {
 
 function accommodationDetailsMarkup(accommodation) {
     const state = accommodationBookingState(accommodation);
-    const bookingUrl = escapeHtml(
-        accommodation.bookingUrl || accommodation.sourceUrl || "#"
-    );
     const guests = escapeHtml(accommodation.guests || "2");
     const area = escapeHtml(accommodation.area || "Kuala Lumpur");
-    const provider = escapeHtml(accommodation.bookingProvider || "Partner booking");
+    const room = escapeHtml(accommodation.roomType || "Selected at booking");
+    const provider = escapeHtml(
+        accommodation.bookingProvider === "JomExplore demo booking"
+            ? "JomExplore"
+            : accommodation.bookingProvider || "JomExplore"
+    );
     const rate = Number(accommodation.nightlyRate);
     const nightlyRate = Number.isFinite(rate)
         ? `RM${rate} / night`
-        : "Check partner price";
+        : "Set at booking";
     const confirmation = state.confirmed && accommodation.confirmationCode
         ? escapeHtml(accommodation.confirmationCode)
-        : "Pending partner confirmation";
+        : "Generated at booking";
     const total = state.confirmed && accommodation.totalAmount
         ? `RM${escapeHtml(accommodation.totalAmount)}`
-        : "Calculated by partner";
+        : "Calculated at booking";
 
     return `
         <div class="accommodation-card-main">
@@ -375,6 +380,7 @@ function accommodationDetailsMarkup(accommodation) {
         <dl class="accommodation-detail-grid" aria-label="Accommodation details">
             <div><dt>Check-in</dt><dd>${formatAccommodationDate(accommodation.checkIn)}</dd></div>
             <div><dt>Check-out</dt><dd>${formatAccommodationDate(accommodation.checkOut)}</dd></div>
+            <div><dt>Room</dt><dd>${room}</dd></div>
             <div><dt>Guests</dt><dd>${guests}</dd></div>
             <div><dt>Nightly rate</dt><dd>${nightlyRate}</dd></div>
             <div><dt>Booking status</dt><dd>${state.confirmed ? "Confirmed" : "Pending"}</dd></div>
@@ -383,9 +389,9 @@ function accommodationDetailsMarkup(accommodation) {
             <div><dt>Provider</dt><dd>${provider}</dd></div>
         </dl>
         <div class="accommodation-actions">
-            <a class="hotel-book-button" href="${bookingUrl}" target="_blank" rel="noopener noreferrer">
-                ${state.confirmed ? "View booking ↗" : "Book via partner ↗"}
-            </a>
+            <button class="hotel-book-button demo-booking-trigger" type="button">
+                ${state.confirmed ? "View booking details" : "Book"}
+            </button>
         </div>`;
 }
 
@@ -393,22 +399,60 @@ function renderSavedAccommodation() {
     const accommodation = getSavedAccommodation();
     if (!savedAccommodationPanel || !savedAccommodationDetails) return;
 
-    savedAccommodationPanel.hidden = !accommodation;
-    if (!accommodation) return;
+    if (!accommodation) {
+        savedAccommodationPanel.hidden = false;
+        if (savedAccommodationTitle) {
+            savedAccommodationTitle.textContent = "🏨 No accommodation saved";
+        }
+        if (includeSavedAccommodation) includeSavedAccommodation.checked = false;
+        if (includeSavedAccommodationOption) {
+            includeSavedAccommodationOption.hidden = true;
+        }
+        removeSavedAccommodationButton.hidden = true;
+        savedAccommodationDetails.textContent = "Choose a hotel to start your booking.";
+        bookSavedAccommodation.textContent = "Find a stay";
+        bookSavedAccommodation.onclick = () => {
+            window.location.href = "results.html?view=hotels";
+        };
+        return;
+    }
+
+    savedAccommodationPanel.hidden = false;
+    if (savedAccommodationTitle) {
+        savedAccommodationTitle.textContent = "🏨 Accommodation saved";
+    }
+
+    const hasItineraryAccommodation = generatedItinerary &&
+        Object.prototype.hasOwnProperty.call(generatedItinerary, "accommodation");
+    const itineraryAccommodation = generatedItinerary
+        ? hasItineraryAccommodation
+            ? generatedItinerary.accommodation
+            : getSavedAccommodation()
+        : null;
+    if (includeSavedAccommodation) {
+        if (includeSavedAccommodationOption) {
+            includeSavedAccommodationOption.hidden = false;
+        }
+        includeSavedAccommodation.checked = itineraryAccommodation?.id === accommodation.id;
+    }
 
     const state = accommodationBookingState(accommodation);
+    removeSavedAccommodationButton.hidden = state.confirmed;
     savedAccommodationDetails.textContent =
         `${accommodation.name} · ${formatAccommodationDates(accommodation)} · RM${accommodation.nightlyRate}/night · ${state.label}`;
-    bookSavedAccommodation.href = accommodation.bookingUrl || accommodation.sourceUrl || "#";
     bookSavedAccommodation.textContent = state.confirmed
-        ? "View booking ↗"
-        : "Book via partner ↗";
+        ? "View booking"
+        : "Book";
     bookSavedAccommodation.onclick = () => {
-        trackEvent("hotel_booking_click", {
+        if (state.confirmed) {
+            window.location.href = "bookings.html";
+            return;
+        }
+        trackEvent("demo_booking_opened", {
             hotelId: accommodation.id,
-            source: "favorites",
-            partner: "agoda_demo"
+            source: "favorites"
         });
+        window.openDemoBooking(accommodation);
     };
 }
 
@@ -468,13 +512,41 @@ function setPlannerStep(step) {
 
 continueToSettingsButton?.addEventListener("click", () => setPlannerStep(2));
 backToFavouritesButton?.addEventListener("click", () => setPlannerStep(1));
-removeSavedAccommodationButton?.addEventListener("click", () => {
-    clearSavedAccommodation();
+removeSavedAccommodationButton?.addEventListener("click", event => {
+    event.preventDefault();
+
     if (generatedItinerary) {
         generatedItinerary.accommodation = null;
-        itineraryAccommodation.hidden = true;
+        localStorage.setItem(
+            ITINERARY_STORAGE_KEY,
+            JSON.stringify(generatedItinerary)
+        );
+        renderItinerary(generatedItinerary, false);
     }
+
+    clearSavedAccommodation();
     renderSavedAccommodation();
+});
+
+window.addEventListener("accommodationchange", event => {
+    renderSavedAccommodation();
+    if (!generatedItinerary) return;
+
+    const attachedAccommodation = generatedItinerary.accommodation;
+    if (attachedAccommodation?.id !== event.detail?.id) return;
+
+    generatedItinerary.accommodation = event.detail || null;
+    localStorage.setItem(
+        ITINERARY_STORAGE_KEY,
+        JSON.stringify(generatedItinerary)
+    );
+    renderItinerary(generatedItinerary, false);
+});
+
+window.addEventListener("storage", event => {
+    if (event.key === ACCOMMODATION_STORAGE_KEY) {
+        renderSavedAccommodation();
+    }
 });
 
 function requestCurrentLocation() {
@@ -806,7 +878,8 @@ async function generateAIExplanation(itinerary) {
         const result = await response.json();
         itinerary.aiExplanation = result.explanation;
         itinerary.aiExplanationModel = result.model;
-        aiItineraryExplanation.textContent = `${result.explanation} Generated locally with ${result.model}.`;
+        aiItineraryExplanation.textContent = `${result.explanation} Generated with ${result.model}.`;
+        persistGeneratedItinerary(itinerary);
         saveItineraryButton.textContent = "Save itinerary";
     }
     catch {
@@ -814,9 +887,18 @@ async function generateAIExplanation(itinerary) {
         itinerary.aiExplanationModel = null;
         aiItineraryExplanation.textContent =
             "Local AI explanation is unavailable. The itinerary was still generated by the deterministic route engine.";
+        persistGeneratedItinerary(itinerary);
     }
     finally {
         refreshAIExplanationButton.disabled = false;
+    }
+}
+
+function persistGeneratedItinerary(itinerary) {
+    localStorage.setItem(ITINERARY_STORAGE_KEY, JSON.stringify(itinerary));
+    const editingRecord = getEditingItineraryRecord();
+    if (editingRecord) {
+        saveItineraryRecord(itinerary, editingRecord.name, editingRecord.id);
     }
 }
 
@@ -877,16 +959,23 @@ function renderItinerary(itinerary, scrollToPlan = true) {
         <div><strong>${(itinerary.elapsed / 60).toFixed(1)}h</strong><span>planned</span></div>
         <div><strong>${totalDistance.toFixed(1)} km</strong><span>estimated travel</span></div>
         <div><strong>RM${totalCost}</strong><span>estimated spend</span></div>`;
-    const accommodation = itinerary.accommodation || getSavedAccommodation();
+    const hasAccommodation = Object.prototype.hasOwnProperty.call(itinerary, "accommodation");
+    const accommodation = hasAccommodation
+        ? itinerary.accommodation
+        : getSavedAccommodation();
     itineraryAccommodation.hidden = !accommodation;
     if (accommodation) {
         itineraryAccommodation.innerHTML = accommodationDetailsMarkup(accommodation);
-        itineraryAccommodation.querySelector(".hotel-book-button")?.addEventListener("click", () => {
-            trackEvent("hotel_booking_click", {
+        itineraryAccommodation.querySelector(".demo-booking-trigger")?.addEventListener("click", () => {
+            if (accommodationBookingState(accommodation).confirmed) {
+                window.location.href = "bookings.html";
+                return;
+            }
+            trackEvent("demo_booking_opened", {
                 hotelId: accommodation.id,
-                source: "generated_itinerary",
-                partner: "agoda_demo"
+                source: "generated_itinerary"
             });
+            window.openDemoBooking(accommodation);
         });
     }
     if (itinerary.aiExplanation) {
@@ -1037,7 +1126,9 @@ plannerForm.addEventListener("submit", async event => {
     }
 
     generatedItinerary = buildItinerary(savedPlaces, settings, startingPoint);
-    generatedItinerary.accommodation = getSavedAccommodation();
+    generatedItinerary.accommodation = includeSavedAccommodation?.checked
+        ? getSavedAccommodation()
+        : null;
     saveItineraryButton.textContent = "Save itinerary";
     renderItinerary(generatedItinerary);
     setPlannerStep(3);
@@ -1118,6 +1209,14 @@ function getEditingItineraryRecord() {
     return getSavedItineraries().find(record => record.id === editingId) || null;
 }
 
+function isItinerarySaved(itinerary) {
+    const editingRecord = getEditingItineraryRecord();
+    return Boolean(
+        editingRecord &&
+        JSON.stringify(editingRecord.itinerary) === JSON.stringify(itinerary)
+    );
+}
+
 function openSaveItineraryDialog() {
     if (!generatedItinerary) return;
     const editingRecord = getEditingItineraryRecord();
@@ -1168,18 +1267,28 @@ refreshAIExplanationButton.addEventListener("click", () => {
 });
 
 async function checkAIProviderStatus() {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 8000);
+
     try {
-        const response = await fetch("/api/ai/status");
+        const response = await fetch("/api/ai/status", {
+            signal: controller.signal
+        });
         if (!response.ok) throw new Error("AI status unavailable");
         const status = await response.json();
         if (status.available) {
-            aiProviderStatus.textContent = `Local AI · ${status.model}`;
+            aiProviderStatus.textContent = status.provider === "groq"
+                ? `Hosted AI · Groq · ${status.model}`
+                : `Local AI · ${status.model}`;
             aiProviderStatus.classList.add("available");
             return;
         }
     }
     catch {
-        // Static hosting or a stopped Ollama service uses the parser fallback.
+        // Static hosting, a stopped server, or a slow provider uses the parser fallback.
+    }
+    finally {
+        window.clearTimeout(timeout);
     }
 
     aiProviderStatus.textContent = "Prototype fallback";
@@ -1213,7 +1322,13 @@ try {
         generatedItinerary = savedItinerary;
         plannerStep = 3;
         renderItinerary(savedItinerary, false);
-        saveItineraryButton.textContent = "✓ Itinerary saved";
+        renderSavedAccommodation();
+        saveItineraryButton.textContent = isItinerarySaved(savedItinerary)
+            ? "✓ Itinerary saved"
+            : "Save itinerary";
+        if (!savedItinerary.aiExplanation) {
+            void generateAIExplanation(generatedItinerary);
+        }
     }
 }
 catch {

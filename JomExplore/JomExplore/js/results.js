@@ -60,10 +60,6 @@ let placeMarkerLayer;
 let userLocationMarker;
 const markersByPlaceId = new Map();
 let resultsView = "places";
-const HOTEL_PARTNER_CONFIG = {
-    baseUrl: "https://www.agoda.com/search",
-    affiliateId: ""
-};
 
 
 // =================================
@@ -517,35 +513,14 @@ function saveAccommodation(hotel) {
         checkOut: accommodation.checkOut || "",
         guests: accommodation.guests || "2",
         bookingStatus: "saved",
-        savedAt: new Date().toISOString(),
-        bookingUrl: createHotelBookingUrl(hotel, "saved_accommodation")
+        bookingProvider: "JomExplore",
+        savedAt: new Date().toISOString()
     };
     localStorage.setItem("jomExploreAccommodation", JSON.stringify(savedHotel));
     window.dispatchEvent(new CustomEvent("accommodationchange", {
         detail: savedHotel
     }));
     return savedHotel;
-}
-
-function createHotelBookingUrl(hotel, source = "results") {
-    // Replace this demo partner URL and add the approved affiliate parameter
-    // once a booking partner agreement is in place. The subid keeps the
-    // JomExplore surface attributable in the partner dashboard.
-    const parameters = new URLSearchParams({
-        text: hotel.bookingSearchName || hotel.name,
-        utm_source: "JomExplore",
-        utm_medium: "affiliate",
-        utm_campaign: "hotel_booking",
-        subid: `hotel_${hotel.id}_${source}`
-    });
-    if (HOTEL_PARTNER_CONFIG.affiliateId) {
-        parameters.set("affiliate_id", HOTEL_PARTNER_CONFIG.affiliateId);
-    }
-    const accommodation = getAccommodationPreferences();
-    if (accommodation.checkIn) parameters.set("checkIn", accommodation.checkIn);
-    if (accommodation.checkOut) parameters.set("checkOut", accommodation.checkOut);
-    if (accommodation.guests) parameters.set("guests", accommodation.guests);
-    return `${HOTEL_PARTNER_CONFIG.baseUrl}?${parameters.toString()}`;
 }
 
 function hotelDatesLabel() {
@@ -620,7 +595,7 @@ function displayHotels(hotelsToDisplay) {
                 <div class="hotel-price-row">
                     <div class="hotel-price">
                         <strong>RM${hotel.nightlyRate}</strong>
-                        <span>per night · check partner price</span>
+                        <span>per night</span>
                     </div>
                 </div>
                 <div class="hotel-actions">
@@ -629,13 +604,9 @@ function displayHotels(hotelsToDisplay) {
                             aria-pressed="${isSaved}">
                         ${isSaved ? "✓ Saved to itinerary" : "＋ Save to itinerary"}
                     </button>
-                    <a class="hotel-book-button"
-                       href="${createHotelBookingUrl(hotel)}"
-                       target="_blank"
-                       rel="noopener noreferrer">
-                        Check availability ↗
-                    </a>
-                    <p class="hotel-booking-note">Booking opens with our partner. JomExplore may earn a commission.</p>
+                    <button class="hotel-book-button demo-booking-button" type="button">
+                        Book
+                    </button>
                 </div>
             </div>`;
 
@@ -644,15 +615,15 @@ function displayHotels(hotelsToDisplay) {
             displayHotels(hotelsToDisplay);
             trackEvent("accommodation_saved", { hotelId: hotel.id });
         });
-        card.querySelector(".hotel-book-button").addEventListener("click", () => {
-            if (getSavedAccommodation()?.id !== hotel.id) {
-                saveAccommodation(hotel);
-            }
-            trackEvent("hotel_booking_click", {
+        card.querySelector(".demo-booking-button").addEventListener("click", () => {
+            const savedAccommodation = getSavedAccommodation()?.id === hotel.id
+                ? getSavedAccommodation()
+                : saveAccommodation(hotel);
+            trackEvent("demo_booking_opened", {
                 hotelId: hotel.id,
-                source: "results",
-                partner: "agoda_demo"
+                source: "results"
             });
+            window.openDemoBooking(savedAccommodation || hotel);
         });
         card.querySelector(".hotel-image img").addEventListener("error", event => {
             event.currentTarget.hidden = true;
@@ -1115,4 +1086,5 @@ useLocationButton.addEventListener("click", () => {
     );
 });
 
-setResultsView("places");
+const initialResultsView = new URLSearchParams(window.location.search).get("view");
+setResultsView(initialResultsView === "hotels" ? "hotels" : "places");

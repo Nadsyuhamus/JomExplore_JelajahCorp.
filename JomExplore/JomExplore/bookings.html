@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="view-transition" content="same-origin">
+    <title>My Bookings | JomExplore</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/ui-icons.js" defer></script>
+</head>
+<body>
+    <header class="navbar">
+        <a href="Index.html" class="logo logo-link">🌏 JomExplore</a>
+        <nav class="nav-actions" aria-label="Primary navigation">
+            <a href="Index.html" class="back-button">Home</a>
+            <a href="explore.html" class="back-button">Explore</a>
+            <a href="results.html" class="back-button">Results</a>
+            <a href="favorites.html" class="back-button">Favourites</a>
+            <a href="saved-itineraries.html" class="back-button">Saved Itineraries</a>
+            <a href="bookings.html" class="back-button" aria-current="page">My Bookings</a>
+        </nav>
+    </header>
+
+    <main class="bookings-page">
+        <header class="bookings-hero">
+            <div>
+                <p class="section-label">STAYS & RESERVATIONS</p>
+                <h1>Your stays, ready when you are.</h1>
+                <p>Keep confirmed accommodation, stay details and local reservation codes in one easy-to-find place.</p>
+            </div>
+        </header>
+
+        <section id="bookingsStats" class="bookings-stats" aria-label="Booking summary" hidden>
+            <div>
+                <strong id="bookingsTotalCount">0</strong>
+                <span>Total bookings</span>
+            </div>
+            <div>
+                <strong id="bookingsUpcomingCount">0</strong>
+                <span>Upcoming stays</span>
+            </div>
+            <div>
+                <strong id="bookingsConfirmedCount">0</strong>
+                <span>Confirmed stays</span>
+            </div>
+        </section>
+
+        <div id="bookingsContent" hidden>
+            <section id="upcomingBookingsSection" class="bookings-section" hidden>
+                <header class="bookings-section-heading">
+                    <div>
+                        <p class="section-label">NEXT UP</p>
+                        <h2>Upcoming stays</h2>
+                    </div>
+                    <span id="upcomingBookingsCount"></span>
+                </header>
+                <div id="upcomingBookings" class="booking-record-list"></div>
+            </section>
+
+            <section id="pastBookingsSection" class="bookings-section" hidden>
+                <header class="bookings-section-heading">
+                    <div>
+                        <p class="section-label">BOOKING HISTORY</p>
+                        <h2>Past & cancelled stays</h2>
+                    </div>
+                    <span id="pastBookingsCount"></span>
+                </header>
+                <div id="pastBookings" class="booking-record-list booking-record-list-past"></div>
+            </section>
+        </div>
+
+        <section id="bookingsEmpty" class="bookings-empty" hidden>
+            <span aria-hidden="true">⌂</span>
+            <p class="section-label">NO BOOKINGS YET</p>
+            <h2>Your next KL stay starts here.</h2>
+            <p>When you confirm accommodation, your hotel, dates and confirmation code will appear on this page.</p>
+            <div class="bookings-empty-actions">
+                <a href="results.html" class="primary-button">Find a stay</a>
+                <a href="favorites.html" class="secondary-button">Open favourites</a>
+            </div>
+        </section>
+
+    </main>
+
+    <script src="js/favorites-store.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/bookings.js"></script>
+</body>
+</html>

@@ -22,6 +22,7 @@ const savedToast = document.getElementById("savedToast");
 
 let activeRecordId = null;
 let toastTimeout = null;
+const explanationRequests = new Set();
 
 const savedTransportSettings = {
     transit: { label: "Public transport + walking", icon: "🚌" },
@@ -92,20 +93,22 @@ function accommodationDetailsMarkup(accommodation) {
     const state = accommodationBookingState(accommodation);
     const guests = escapeHtml(accommodation.guests || "2");
     const area = escapeHtml(accommodation.area || "Kuala Lumpur");
-    const provider = escapeHtml(accommodation.bookingProvider || "Partner booking");
+    const room = escapeHtml(accommodation.roomType || "Selected at booking");
+    const provider = escapeHtml(
+        accommodation.bookingProvider === "JomExplore demo booking"
+            ? "JomExplore"
+            : accommodation.bookingProvider || "JomExplore"
+    );
     const rate = Number(accommodation.nightlyRate);
     const nightlyRate = Number.isFinite(rate)
         ? `RM${rate} / night`
-        : "Check partner price";
+        : "Set at booking";
     const confirmation = state.confirmed && accommodation.confirmationCode
         ? escapeHtml(accommodation.confirmationCode)
-        : "Pending partner confirmation";
+        : "Generated at booking";
     const total = state.confirmed && accommodation.totalAmount
         ? `RM${escapeHtml(accommodation.totalAmount)}`
-        : "Calculated by partner";
-    const bookingUrl = escapeHtml(
-        accommodation.bookingUrl || accommodation.sourceUrl || "#"
-    );
+        : "Calculated at booking";
 
     return `
         <div class="accommodation-card-main">
@@ -119,6 +122,7 @@ function accommodationDetailsMarkup(accommodation) {
         <dl class="accommodation-detail-grid" aria-label="Accommodation details">
             <div><dt>Check-in</dt><dd>${escapeHtml(formatAccommodationDate(accommodation.checkIn))}</dd></div>
             <div><dt>Check-out</dt><dd>${escapeHtml(formatAccommodationDate(accommodation.checkOut))}</dd></div>
+            <div><dt>Room</dt><dd>${room}</dd></div>
             <div><dt>Guests</dt><dd>${guests}</dd></div>
             <div><dt>Nightly rate</dt><dd>${nightlyRate}</dd></div>
             <div><dt>Booking status</dt><dd>${state.confirmed ? "Confirmed" : "Pending"}</dd></div>
@@ -127,9 +131,9 @@ function accommodationDetailsMarkup(accommodation) {
             <div><dt>Provider</dt><dd>${provider}</dd></div>
         </dl>
         <div class="accommodation-actions">
-            <a class="hotel-book-button" href="${bookingUrl}" target="_blank" rel="noopener noreferrer">
-                ${state.confirmed ? "View booking ↗" : "Book via partner ↗"}
-            </a>
+            <button class="hotel-book-button demo-booking-trigger" type="button">
+                ${state.confirmed ? "View booking details" : "Book"}
+            </button>
         </div>`;
 }
 
@@ -176,6 +180,9 @@ function createItineraryText(record) {
         lines.push(
             `Accommodation: ${itinerary.accommodation.name}`,
             `   ${formatAccommodationDates(itinerary.accommodation)} · ${itinerary.accommodation.area || "Kuala Lumpur"}`,
+            ...(itinerary.accommodation.roomType
+                ? [`   Room: ${itinerary.accommodation.roomType}`]
+                : []),
             `   Status: ${state.label}`,
             ...(state.confirmed && itinerary.accommodation.confirmationCode
                 ? [`   Confirmation: ${itinerary.accommodation.confirmationCode}`]
@@ -215,6 +222,41 @@ async function copyRecord(record) {
         textarea.remove();
     }
     showToast("Itinerary summary copied");
+}
+
+async function ensureSavedPlanExplanation(record) {
+    const itinerary = record?.itinerary;
+    if (!itinerary?.scheduled?.length || itinerary.aiExplanation || explanationRequests.has(record.id)) {
+        return;
+    }
+
+    explanationRequests.add(record.id);
+    savedPlanExplanation.hidden = false;
+    savedPlanExplanation.textContent = "Generating an AI explanation for this saved plan…";
+
+    try {
+        const response = await fetch("/api/ai/explain", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ itinerary })
+        });
+        if (!response.ok) throw new Error("AI explanation unavailable");
+
+        const result = await response.json();
+        itinerary.aiExplanation = String(result.explanation || "").trim();
+        itinerary.aiExplanationModel = result.model || null;
+        savedPlanExplanation.textContent = itinerary.aiExplanation
+            ? `${itinerary.aiExplanation} Generated with ${itinerary.aiExplanationModel || "the configured AI service"}.`
+            : "AI explanation was not returned for this plan.";
+        saveItineraryRecord(itinerary, record.name, record.id);
+    }
+    catch {
+        savedPlanExplanation.textContent =
+            "AI explanation is unavailable. The saved itinerary is still available to use.";
+    }
+    finally {
+        explanationRequests.delete(record.id);
+    }
 }
 
 function openRecordForEditing(record) {
@@ -268,9 +310,22 @@ function renderPlanDialog(record) {
     savedPlanAccommodation.hidden = !accommodation;
     if (accommodation) {
         savedPlanAccommodation.innerHTML = accommodationDetailsMarkup(accommodation);
+        savedPlanAccommodation.querySelector(".demo-booking-trigger")?.addEventListener("click", () => {
+            if (accommodationBookingState(accommodation).confirmed) {
+                window.location.href = "bookings.html";
+                return;
+            }
+            trackEvent("demo_booking_opened", {
+                hotelId: accommodation.id,
+                source: "saved_itinerary"
+            });
+            window.openDemoBooking(accommodation);
+        });
     }
     savedPlanExplanation.hidden = !itinerary.aiExplanation;
-    savedPlanExplanation.textContent = itinerary.aiExplanation || "";
+    savedPlanExplanation.textContent = itinerary.aiExplanation
+        ? `${itinerary.aiExplanation} Generated with ${itinerary.aiExplanationModel || "the configured AI service"}.`
+        : "";
     savedPlanTimeline.innerHTML = "";
 
     (itinerary.scheduled || []).forEach((item, index) => {
@@ -291,6 +346,7 @@ function renderPlanDialog(record) {
         savedPlanTimeline.appendChild(entry);
     });
     savedPlanDialog.showModal();
+    void ensureSavedPlanExplanation(record);
 }
 
 function closeOpenMenus() {

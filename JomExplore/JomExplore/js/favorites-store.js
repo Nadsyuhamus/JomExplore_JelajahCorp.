@@ -4,6 +4,7 @@ const SAVED_ITINERARIES_STORAGE_KEY = "jomExploreSavedItineraries";
 const EDITING_ITINERARY_STORAGE_KEY = "jomExploreEditingItineraryId";
 const ITINERARY_MIGRATION_STORAGE_KEY = "jomExploreItineraryMigrationV1";
 const ACCOMMODATION_STORAGE_KEY = "jomExploreAccommodation";
+const BOOKINGS_STORAGE_KEY = "jomExploreBookings";
 
 function getFavoriteIds() {
     try {
@@ -55,8 +56,147 @@ function saveAccommodationRecord(accommodation) {
 }
 
 function clearSavedAccommodation() {
+    const accommodation = getSavedAccommodation();
     localStorage.removeItem(ACCOMMODATION_STORAGE_KEY);
+    clearStoredAccommodationReferences(accommodation?.id);
     window.dispatchEvent(new CustomEvent("accommodationchange", { detail: null }));
+}
+
+function getBookingRecords() {
+    try {
+        const saved = JSON.parse(localStorage.getItem(BOOKINGS_STORAGE_KEY));
+        if (Array.isArray(saved)) {
+            return saved.filter(record => record && typeof record === "object");
+        }
+    }
+    catch {
+        // Fall through to the original single-accommodation record.
+    }
+
+    const legacy = getSavedAccommodation();
+    const status = String(legacy?.bookingStatus || "").toLowerCase();
+    return legacy && ["confirmed", "booked", "cancelled", "canceled"].includes(status)
+        ? [legacy]
+        : [];
+}
+
+function writeBookingRecords(bookings) {
+    localStorage.setItem(BOOKINGS_STORAGE_KEY, JSON.stringify(bookings));
+    window.dispatchEvent(new CustomEvent("bookingschange", {
+        detail: bookings
+    }));
+    return bookings;
+}
+
+function saveBookingRecord(booking) {
+    if (!booking || typeof booking !== "object") return null;
+    const bookings = getBookingRecords();
+    const key = booking.confirmationCode || booking.id;
+    const existingIndex = bookings.findIndex(record =>
+        (record.confirmationCode || record.id) === key
+    );
+    const nextBooking = { ...booking };
+
+    if (existingIndex >= 0) {
+        bookings[existingIndex] = nextBooking;
+    }
+    else {
+        bookings.unshift(nextBooking);
+    }
+    writeBookingRecords(bookings);
+    return nextBooking;
+}
+
+function updateStoredAccommodationReferences(accommodation) {
+    let currentItinerary = null;
+    try {
+        currentItinerary = JSON.parse(
+            localStorage.getItem(ITINERARY_STORAGE_KEY) || "null"
+        );
+    }
+    catch {
+        currentItinerary = null;
+    }
+
+    if (currentItinerary?.accommodation?.id === accommodation.id) {
+        localStorage.setItem(
+            ITINERARY_STORAGE_KEY,
+            JSON.stringify({ ...currentItinerary, accommodation })
+        );
+    }
+
+    const savedItineraries = getSavedItineraries();
+    const updated = savedItineraries.map(record => {
+        if (record.itinerary?.accommodation?.id !== accommodation.id) return record;
+        return {
+            ...record,
+            updatedAt: new Date().toISOString(),
+            itinerary: { ...record.itinerary, accommodation }
+        };
+    });
+    if (JSON.stringify(updated) !== JSON.stringify(savedItineraries)) {
+        writeSavedItineraries(updated);
+    }
+}
+
+function clearStoredAccommodationReferences(accommodationId) {
+    if (!accommodationId) return;
+
+    let currentItinerary = null;
+    try {
+        currentItinerary = JSON.parse(
+            localStorage.getItem(ITINERARY_STORAGE_KEY) || "null"
+        );
+    }
+    catch {
+        currentItinerary = null;
+    }
+
+    if (currentItinerary?.accommodation?.id === accommodationId) {
+        localStorage.setItem(
+            ITINERARY_STORAGE_KEY,
+            JSON.stringify({ ...currentItinerary, accommodation: null })
+        );
+    }
+
+    const savedItineraries = getSavedItineraries();
+    const updated = savedItineraries.map(record => {
+        if (record.itinerary?.accommodation?.id !== accommodationId) return record;
+        return {
+            ...record,
+            updatedAt: new Date().toISOString(),
+            itinerary: { ...record.itinerary, accommodation: null }
+        };
+    });
+    if (JSON.stringify(updated) !== JSON.stringify(savedItineraries)) {
+        writeSavedItineraries(updated);
+    }
+}
+
+function updateBookingStatus(bookingKey, status) {
+    const normalizedStatus = String(status || "").toLowerCase();
+    if (!["confirmed", "completed", "cancelled"].includes(normalizedStatus)) {
+        return null;
+    }
+
+    const bookings = getBookingRecords();
+    const index = bookings.findIndex(record =>
+        (record.confirmationCode || record.id) === bookingKey
+    );
+    if (index < 0) return null;
+
+    const updatedBooking = {
+        ...bookings[index],
+        bookingStatus: normalizedStatus,
+        ...(normalizedStatus === "cancelled"
+            ? { cancelledAt: new Date().toISOString() }
+            : {})
+    };
+    bookings[index] = updatedBooking;
+    writeBookingRecords(bookings);
+    saveAccommodationRecord(updatedBooking);
+    updateStoredAccommodationReferences(updatedBooking);
+    return updatedBooking;
 }
 
 function createStorageId() {

@@ -1,6 +1,6 @@
 // Demo accommodation catalogue for the MVP.
-// Production booking links should be replaced with the team's approved
-// affiliate deep links so completed bookings can be attributed to JomExplore.
+// The in-app booking flow is simulated locally; production requires hotel
+// inventory, payment and confirmation integrations.
 const hotels = [
     {
         id: "HOTEL-KL-001",

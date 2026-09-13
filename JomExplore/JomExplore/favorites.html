@@ -20,6 +20,7 @@
             <a href="results.html" class="back-button">Results</a>
             <a href="favorites.html" class="back-button" aria-current="page">Favourites</a>
             <a href="saved-itineraries.html" class="back-button">Saved Itineraries</a>
+            <a href="bookings.html" class="back-button">My Bookings</a>
         </nav>
     </header>
 
@@ -52,6 +53,24 @@
                     <p>Save a few places from the results page, then return here to build an itinerary.</p>
                     <a href="results.html" class="primary-button">Browse places</a>
                 </div>
+                <section id="savedAccommodationPanel"
+                         class="saved-accommodation-card"
+                         aria-labelledby="savedAccommodationTitle"
+                         hidden>
+                    <div>
+                        <strong id="savedAccommodationTitle">🏨 Accommodation</strong>
+                        <span id="savedAccommodationDetails"></span>
+                        <label class="planner-check accommodation-include-option">
+                            <input id="includeSavedAccommodation" type="checkbox">
+                            <span>Include this stay in this itinerary</span>
+                        </label>
+                    </div>
+                    <button id="bookSavedAccommodation"
+                            class="hotel-book-button"
+                            type="button">Book</button>
+                    <button id="removeSavedAccommodation"
+                            type="button">Remove</button>
+                </section>
                 <button id="continueToSettings" type="button" class="primary-button planner-continue">Continue to plan</button>
             </div>
 
@@ -59,23 +78,6 @@
                 <button id="backToFavourites" type="button" class="secondary-button planner-back">← Back to favourites</button>
                 <p class="section-label">PLAN SETTINGS</p>
                 <h2>Shape your day</h2>
-
-                <section id="savedAccommodationPanel"
-                         class="saved-accommodation-card"
-                         aria-labelledby="savedAccommodationTitle"
-                         hidden>
-                    <div>
-                        <strong id="savedAccommodationTitle">🏨 Accommodation saved</strong>
-                        <span id="savedAccommodationDetails"></span>
-                    </div>
-                    <a id="bookSavedAccommodation"
-                       class="hotel-book-button"
-                       href="#"
-                       target="_blank"
-                       rel="noopener noreferrer">Book via partner ↗</a>
-                    <button id="removeSavedAccommodation"
-                            type="button">Remove</button>
-                </section>
 
                 <label for="planDate">Date</label>
                 <input id="planDate" name="date" type="date" required>
@@ -135,7 +137,7 @@
                             <h3 id="assistantTitle">Smart planner assistant</h3>
                             <p>Describe how you want the day to feel.</p>
                         </div>
-                        <span id="aiProviderStatus" class="ai-provider-status">Checking local AI…</span>
+                        <span id="aiProviderStatus" class="ai-provider-status">Checking AI…</span>
                     </div>
                     <label for="assistantPrompt">Your request</label>
                     <textarea id="assistantPrompt"
@@ -229,6 +231,7 @@
             crossorigin=""></script>
     <script src="js/favorites-store.js"></script>
     <script src="js/main.js"></script>
+    <script src="js/demo-booking.js"></script>
     <script src="js/favorites.js"></script>
 </body>
 </html>
