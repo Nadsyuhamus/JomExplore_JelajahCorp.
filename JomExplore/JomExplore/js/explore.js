@@ -23,6 +23,14 @@ function setDateBounds() {
     checkOutInput.min = todayString;
 }
 
+function normalizeBudgetOption(value) {
+    return {
+        "RM1-30": "RM30",
+        "RM31-50": "RM50",
+        "RM51-100": "RM100"
+    }[value] || value;
+}
+
 accommodationToggle.addEventListener("change", () => {
     setAccommodationVisibility(accommodationToggle.checked);
 });
@@ -41,7 +49,8 @@ try {
         document.querySelectorAll('input[name="interest"]').forEach(input => {
             input.checked = savedPreferences.interests?.includes(input.value) ?? false;
         });
-        document.querySelector(`input[name="budget"][value="${CSS.escape(savedPreferences.budget)}"]`)?.click();
+        const savedBudget = normalizeBudgetOption(savedPreferences.budget);
+        document.querySelector(`input[name="budget"][value="${CSS.escape(savedBudget)}"]`)?.click();
         document.querySelector(`input[name="time"][value="${CSS.escape(savedPreferences.time)}"]`)?.click();
 
         const accommodation = savedPreferences.accommodation;

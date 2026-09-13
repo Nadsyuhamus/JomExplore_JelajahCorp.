@@ -67,12 +67,23 @@ let resultsView = "places";
 // =================================
 
 function getPreferenceDescription() {
-    const budgetText = preferences.budget === "Free"
-        ? "free entry"
-        : `the ${preferences.budget} spending range`;
+    const budgetText = getBudgetDescription(preferences.budget);
 
     return `Places in ${preferences.location} matching at least one of your interests ` +
         `(${preferences.interests.join(", ")}), ${budgetText}, and a visit within ${preferences.time}.`;
+}
+
+function getBudgetDescription(budget) {
+    return {
+        Free: "free entry",
+        RM30: "a budget up to RM30",
+        RM50: "a budget up to RM50",
+        RM100: "a budget up to RM100",
+        "RM100+": "a budget above RM100",
+        "RM1-30": "a budget up to RM30",
+        "RM31-50": "a budget up to RM50",
+        "RM51-100": "a budget up to RM100"
+    }[budget] || `the ${budget} budget`;
 }
 
 resultDescription.textContent = getPreferenceDescription();
@@ -389,38 +400,47 @@ function checkBudget(
     budget
 ) {
 
+    const numericPrice = Number(price);
+    const normalizedBudget = {
+        "RM1-30": "RM30",
+        "RM31-50": "RM50",
+        "RM51-100": "RM100"
+    }[budget] || budget;
 
-    if (budget === "Free") {
-
-        return price === 0;
-
-    }
-
-
-    if (budget === "RM1-30") {
-
-        return price >= 1 && price <= 30;
-
-    }
+    if (!Number.isFinite(numericPrice)) return false;
 
 
-    if (budget === "RM31-50") {
+    if (normalizedBudget === "Free") {
 
-        return price >= 31 && price <= 50;
+        return numericPrice === 0;
 
     }
 
 
-    if (budget === "RM51-100") {
+    if (normalizedBudget === "RM30") {
 
-        return price >= 51 && price <= 100;
+        return numericPrice >= 0 && numericPrice <= 30;
 
     }
 
 
-    if (budget === "RM100+") {
+    if (normalizedBudget === "RM50") {
 
-        return price > 100;
+        return numericPrice >= 0 && numericPrice <= 50;
+
+    }
+
+
+    if (normalizedBudget === "RM100") {
+
+        return numericPrice >= 0 && numericPrice <= 100;
+
+    }
+
+
+    if (normalizedBudget === "RM100+") {
+
+        return numericPrice > 100;
 
     }
 
